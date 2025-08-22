@@ -105,7 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
     wavesContainer.innerHTML = "";
     character.style.left = "0px";
     character.style.bottom = "0px";
-    vy = -0.1;
+    vy = 0;
     keys = {};
   }
 
@@ -282,10 +282,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   moveLoop();
 
-
-  character.style.left = "0px";
-  character.style.bottom = "0px"; // <- это важно!
-  
   function onGround() {
     return parseFloat(character.style.bottom) <= 0;
   }

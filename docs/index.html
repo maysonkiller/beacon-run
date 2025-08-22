@@ -1,4 +1,3 @@
-<!-- index.html (added fixed positioning for walletStatus to avoid page expansion) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,7 +7,6 @@
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <!-- сетка + контракт -->
   <script src="network.js"></script>
   <script src="contract.js"></script>
 </head>
@@ -67,20 +65,58 @@ const walletStatus = document.getElementById("walletStatus");
 
 let provider, signer, contract, userAddress;
 
-// Modal for nickname
+// ===== Modal for nickname =====
 function nicknameModal(onSubmit) {
   const wrap = document.createElement("div");
-  Object.assign(wrap.style, { position:"fixed", inset:"0", display:"grid", placeItems:"center", background:"rgba(0,0,0,.6)", zIndex:"9999" });
-  wrap.innerHTML = `<div style="min-width:320px;max-width:90vw;background:rgba(10,12,25,.95);border:2px solid #0ff;border-radius:16px;padding:18px;color:#0ff;font-family:'Space Grotesk',sans-serif;box-shadow:0 10px 40px rgba(0,255,255,.25)">
-    <div style="text-align:center">
+  Object.assign(wrap.style, { 
+    position: "fixed", inset: "0", display: "grid", placeItems: "center", 
+    background: "rgba(0,0,0,.6)", zIndex: "9999"
+  });
+
+  wrap.innerHTML = `
+    <div style="
+      min-width: 320px;
+      max-width: 90vw;
+      background: rgba(10,12,25,.95);
+      border: 2px solid #0ff;
+      border-radius: 16px;
+      padding: 18px;
+      color: #0ff;
+      font-family: 'Space Grotesk', sans-serif;
+      box-shadow: 0 10px 40px rgba(0,255,255,.25);
+      box-sizing: border-box;
+      text-align: center;
+    ">
       <h2>Enter Nickname</h2>
-      <input id="nickInput" type="text" style="width:100%; padding:10px; border:2px solid #0ff; background:#000; color:#0ff; border-radius:8px; margin-bottom:10px;" placeholder="3-32 characters">
-      <button id="submitNick" style="padding:10px 20px; border:2px solid #0ff; background:#000; color:#0ff; border-radius:8px; cursor:pointer;">Submit</button>
+      <input id="nickInput" type="text" placeholder="3-32 characters"
+        style="
+          width: 100%;
+          max-width: 100%;
+          padding: 10px;
+          border: 2px solid #0ff;
+          background: #000;
+          color: #0ff;
+          border-radius: 8px;
+          margin-bottom: 10px;
+          box-sizing: border-box;
+        ">
+      <button id="submitNick" style="
+          padding: 10px 20px;
+          border: 2px solid #0ff;
+          background: #000;
+          color: #0ff;
+          border-radius: 8px;
+          cursor: pointer;
+          box-sizing: border-box;
+        ">Submit</button>
     </div>
-  </div>`;
+  `;
+
   document.body.appendChild(wrap);
+
   const input = wrap.querySelector("#nickInput");
   const btn = wrap.querySelector("#submitNick");
+
   btn.onclick = () => {
     const nick = input.value.trim();
     if (nick.length >= 3 && nick.length <= 32) {
@@ -112,7 +148,7 @@ leaderBtn.addEventListener("click", () => {
 // ===== Подключение кошелька + регистрация =====
 async function connect() {
   if (!window.ethereum) { alert("Install an EVM-compatible wallet like MetaMask!"); return; }
-  await window.ensurePharos(); // добавить/переключить сеть Pharos
+  await window.ensurePharos();
 
   provider = new ethers.providers.Web3Provider(window.ethereum);
   await provider.send("eth_requestAccounts", []);
@@ -132,7 +168,8 @@ async function connect() {
           startBtn.disabled = false;
         } catch (regError) {
           console.error(regError);
-          if (regError.message.includes("already registered") || (regError.data && regError.data.message.includes("already registered"))) {
+          if (regError.message.includes("already registered") || 
+              (regError.data && regError.data.message.includes("already registered"))) {
             alert("You are already registered. Welcome back!");
           } else {
             alert("Registration failed.");
@@ -157,13 +194,11 @@ function shortAddress(addr) {
 connectBtn.addEventListener("click", connect);
 
 // ===== Переход в игру =====
-// ===== Переход в игру =====
 startBtn.addEventListener("click", async () => {
   if (!signer) { 
     alert("Connect wallet first!"); 
     return; 
   }
-  // просто переходим на game.html относительно текущей папки
   window.location.href = "game.html";
 });
   </script>
