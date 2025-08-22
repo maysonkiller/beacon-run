@@ -282,6 +282,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   moveLoop();
 
+
+  character.style.left = "0px";
+  character.style.bottom = "0px"; // <- это важно!
+  
   function onGround() {
     return parseFloat(character.style.bottom) <= 0;
   }
