@@ -19,7 +19,7 @@ musicBtn.addEventListener("click", () => {
 
 // ===== Лидерборд =====
 leaderBtn.addEventListener("click", () => {
-  window.location.href = "/leaderboard.html";
+  window.location.href = "leaderboard.html";
 });
 
 // ===== Подключение кошелька + регистрация =====
@@ -60,6 +60,6 @@ connectBtn.addEventListener("click", connect);
 startBtn.addEventListener("click", async () => {
   if (!signer) { alert("Connect wallet first!"); return; }
   // просто переходим в game.html; оплата взимается на сцене игры при нажатии её Start
-  const url = new URL("/game.html", window.location.origin);
+  const url = new URL("game.html", window.location.origin);
   window.location.href = url.toString();
 });
