@@ -157,10 +157,14 @@ function shortAddress(addr) {
 connectBtn.addEventListener("click", connect);
 
 // ===== Переход в игру =====
+// ===== Переход в игру =====
 startBtn.addEventListener("click", async () => {
-  if (!signer) { alert("Connect wallet first!"); return; }
-  const url = window.location.href = "game.html";
-  window.location.href = url.toString();
+  if (!signer) { 
+    alert("Connect wallet first!"); 
+    return; 
+  }
+  // просто переходим на game.html относительно текущей папки
+  window.location.href = "game.html";
 });
   </script>
 </body>
