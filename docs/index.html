@@ -106,7 +106,7 @@ musicBtn.addEventListener("click", () => {
 
 // ===== Лидерборд =====
 leaderBtn.addEventListener("click", () => {
-  window.location.href = "leaderboard.html";
+  window.location.href = "./leaderboard.html";
 });
 
 // ===== Подключение кошелька + регистрация =====
@@ -159,7 +159,7 @@ connectBtn.addEventListener("click", connect);
 // ===== Переход в игру =====
 startBtn.addEventListener("click", async () => {
   if (!signer) { alert("Connect wallet first!"); return; }
-  const url = new URL("game.html", window.location.origin);
+  const url = new URL("./game.html", window.location.origin);
   window.location.href = url.toString();
 });
   </script>
