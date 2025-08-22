@@ -159,7 +159,7 @@ connectBtn.addEventListener("click", connect);
 // ===== Переход в игру =====
 startBtn.addEventListener("click", async () => {
   if (!signer) { alert("Connect wallet first!"); return; }
-  const url = new URL("game.html", window.location.origin);
+  const url = window.location.href = "game.html";
   window.location.href = url.toString();
 });
   </script>
