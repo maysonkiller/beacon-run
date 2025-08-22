@@ -35,8 +35,3 @@ Players compete by collecting coins and completing levels, while rewards are aut
   - `getAllPlayersData()` – fetch all registered players and stats  
 
 ---
-
-## ⚡ Installation & Play
-1. Clone the repository:  
-   ```bash
-   git clone https://github.com/yourusername/beacon-run.git
