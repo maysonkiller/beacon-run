@@ -238,48 +238,46 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
   document.addEventListener("keyup",   e => keys[e.key.toLowerCase()] = false);
 
-  function moveLoop() {
+function moveLoop() {
     if (gameActive) {
-      const speed = 6;
-      const cr = r(character);
-      let left = cr.left, bottom = parseFloat(character.style.bottom) || 50;
+        const speed = 6;
 
-      // horizontal
-      if (keys["arrowleft"] || keys["a"] || keys["ф"]) left -= speed;
-      if (keys["arrowright"] || keys["d"] || keys["в"]) left += speed;
-      character.style.left = Math.max(0, Math.min(window.innerWidth - cr.width, left)) + "px";
+        // горизонтальная позиция
+        let left = parseFloat(character.style.left) || 0;
+        if (keys["arrowleft"] || keys["a"] || keys["ф"]) left -= speed;
+        if (keys["arrowright"] || keys["d"] || keys["в"]) left += speed;
+        character.style.left = Math.max(0, Math.min(window.innerWidth - character.offsetWidth, left)) + "px";
 
-      // jump on space
-      if ((keys[" "] || keys["arrowup"] || keys["w"] || keys["ц"]) && onGround()) vy = JUMP_V;
+        // прыжок
+        if ((keys[" "] || keys["arrowup"] || keys["w"] || keys["ц"]) && onGround()) {
+            vy = JUMP_V;
+        }
 
-      // gravity and jump (using bottom for consistency)
-      vy += GRAVITY;
-      let newBottom = bottom + vy; // vy negative for up
-      newBottom = Math.max(0, Math.min(window.innerHeight - cr.height, newBottom));
-      character.style.bottom = newBottom + "px";
+        // гравитация
+        vy += GRAVITY;
+        let newBottom = parseFloat(character.style.bottom) + vy;
+        newBottom = Math.max(0, Math.min(window.innerHeight - character.offsetHeight, newBottom));
+        character.style.bottom = newBottom + "px";
 
-      const lhRect = r(lighthouse);
+        // проверка на достижение маяка
+        const lhRect = r(lighthouse);
+        const paddingLeft = lhRect.width * 0.5;
+        const paddingRight = lhRect.width * 0.05;
+        const paddingTop = lhRect.height * 0.5;
+        const paddingBottom = lhRect.height * 0.05;
 
-    // Отдельные коэффициенты сжатия (padding) для каждой стороны (0 = нет сжатия, 0.5 = сжимаем на 50% с этой стороны)
-    // Уменьшай значение, чтобы расширить хитбокс в эту сторону или сделать ближе к краю
-      const paddingLeft = lhRect.width * 0.50;   // Сжатие слева (стандартное, не меняем)
-      const paddingRight = lhRect.width * 0.05;  // Меньше сжатие справа — хитбокс ближе к правому краю и растянут вправо
-      const paddingTop = lhRect.height * 0.50;   // Сжатие сверху (стандартное)
-      const paddingBottom = lhRect.height * 0.05; // Меньше сжатие снизу — хитбокс больше вниз (растянут вниз)
+        const lhHitbox = {
+            left: lhRect.left + paddingLeft,
+            right: lhRect.right - paddingRight,
+            top: lhRect.top + paddingTop,
+            bottom: lhRect.bottom - paddingBottom
+        };
 
-      const lhHitbox = {
-      left: lhRect.left + paddingLeft,         // Левый край: сдвигаем вправо на paddingLeft
-      right: lhRect.right - paddingRight,      // Правый край: отнимаем меньше, чтобы растянуть вправо
-      top: lhRect.top + paddingTop,            // Верхний край: стандарт
-      bottom: lhRect.bottom - paddingBottom    // Нижний край: отнимаем меньше, чтобы растянуть вниз (больше в низ)
-      };
-      if (intersect(r(character), lhHitbox)) {
-          finishLevel(true);
-      }
-
+        if (intersect(r(character), lhHitbox)) finishLevel(true);
     }
+
     requestAnimationFrame(moveLoop);
-  }
+}
 
   function onGround() {
     return parseFloat(character.style.bottom) <= 0;
