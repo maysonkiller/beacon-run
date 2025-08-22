@@ -5,18 +5,18 @@
   <meta charset="UTF-8">
   <title>Beacon Run</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <!-- сетка + контракт -->
-  <script src="/network.js"></script>
-  <script src="/contract.js"></script>
+  <script src="network.js"></script>
+  <script src="contract.js"></script>
 </head>
 <body>
 
   <!-- Лого слева (кликабельно) -->
   <div class="logo" onclick="window.open('https://testnet.pharosnetwork.xyz/', '_blank')">
-    <img src="/img/pharos-logo.png" alt="Pharos Logo">
+    <img src="img/pharos-logo.png" alt="Pharos Logo">
   </div>
 
   <!-- Кнопки справа сверху -->
@@ -35,7 +35,7 @@
   <!-- Видео-рамка -->
   <div class="video-frame">
     <video id="introVideo" autoplay loop muted playsinline>
-      <source src="/video/intro.mp4" type="video/mp4">
+      <source src="video/intro.mp4" type="video/mp4">
       Your browser does not support the video tag.
     </video>
   </div>
@@ -46,16 +46,16 @@
     <div id="walletStatus" style="margin-top:10px; color:#0ff; font-size:14px;"></div>
     <div class="socials">
       <a href="https://twitter.com/pharos_network" target="_blank" class="social-btn">
-        <img src="/img/twitter.png" alt="Twitter" class="twitter-icon"> PHAROS_NETWORK
+        <img src="img/twitter.png" alt="Twitter" class="twitter-icon"> PHAROS_NETWORK
       </a>
       <a href="https://twitter.com/maysonkiller23" target="_blank" class="social-btn">
-        <img src="/img/twitter.png" alt="Twitter" class="twitter-icon"> Developer
+        <img src="img/twitter.png" alt="Twitter" class="twitter-icon"> Developer
       </a>
     </div>
   </div>
 
   <!-- Музыка -->
-  <audio id="bgMusic" src="/music/music.mp3" loop></audio>
+  <audio id="bgMusic" src="music/music.mp3" loop></audio>
 
   <script>
 const bgMusic = document.getElementById("bgMusic");

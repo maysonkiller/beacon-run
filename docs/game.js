@@ -139,7 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function spawnNextWave() {
     if (!gameActive) return;
     const wave = document.createElement("img");
-    wave.src = "/img/wave.png"; wave.className = "wave";
+    wave.src = "img/wave.png"; wave.className = "wave";
     const waveH = 100; // визуальная высота волны (примерно)
     const maxBottom = Math.max(0, Math.floor(window.innerHeight / 2 - waveH));
     wave.style.bottom = (Math.random() * maxBottom) + "px";
@@ -182,7 +182,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!gameActive || droppedCoins >= totalCoins) return;
 
     const coin = document.createElement("img");
-    coin.src = "/img/coin.png";
+    coin.src = "img/coin.png";
     coin.className = "coin";
 
     // безопасная зона: между персонажем и маяком
