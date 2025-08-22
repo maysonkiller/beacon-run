@@ -280,7 +280,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     requestAnimationFrame(moveLoop);
   }
-  moveLoop();
 
   function onGround() {
     return parseFloat(character.style.bottom) <= 0;
