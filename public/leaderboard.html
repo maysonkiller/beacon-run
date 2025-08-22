@@ -1,0 +1,104 @@
+<!-- leaderboard.html (removed winners section) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Beacon Run — Leaderboard</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body{ margin:0; background:#000; color:#0ff; font-family:'Space Grotesk',sans-serif; }
+    .wrap{ max-width:980px; margin:30px auto; padding:0 16px; }
+    h1{ margin:0 0 10px; }
+    .tabs{ display:flex; gap:10px; margin:14px 0 20px; }
+    .tabs button{ padding:10px 14px; border:2px solid #0ff; background:#000; color:#0ff; border-radius:10px; cursor:pointer; }
+    .tabs button.active{ background:#0ff; color:#000; }
+    table{ width:100%; border-collapse:collapse; background:rgba(0,10,20,.6); border:2px solid #0ff; border-radius:12px; overflow:hidden; }
+    th,td{ padding:10px; border-bottom:1px dashed #0ff3; text-align:left; }
+    th{ background:rgba(0,255,255,.08); }
+    tr:hover{ background:rgba(0,255,255,.06); }
+    .addr{ font-family:monospace; opacity:.9; }
+    .back{ margin:14px 0; display:inline-block; }
+    .back a{ color:#0ff; text-decoration:none; border-bottom:1px dashed #0ff; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script src="/network.js"></script>
+  <script src="/contract.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Leaderboard</h1>
+    <div class="back"><a href="/">← back to main</a></div>
+
+    <div class="tabs">
+      <button id="tabAll" class="active">All players</button>
+      <button id="tabTop">Top (completed all 3)</button>
+    </div>
+
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th>#</th><th>Nickname</th><th>Address</th><th>Total Coins</th><th>Total Earned (PHR)</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+(async function(){
+  const tblBody = document.querySelector("#tbl tbody");
+  const tabAll = document.getElementById("tabAll");
+  const tabTop = document.getElementById("tabTop");
+
+  // провайдер только для чтения через RPC (без кошелька)
+  const rpc = window.PHAROS.rpcUrls[0];
+  const provider = new ethers.providers.JsonRpcProvider(rpc);
+  const contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, provider);
+
+  let rows = [];
+  try {
+    const data = await contract.getAllPlayersData();
+    const [addrs, nicks, totalCoinsArr, totalRewardArr, completedAllArr] = data;
+
+    rows = addrs.map((a,i)=>({
+      addr:a,
+      nick:nicks[i],
+      coins: Number(totalCoinsArr[i].toString()),
+      rewardPHR: Number(ethers.utils.formatEther(totalRewardArr[i] || 0)),
+      top: completedAllArr[i]
+    }));
+
+    // сортируем по монетам, убыв
+    rows.sort((x,y)=> y.coins - x.coins);
+  } catch(e) {
+    console.error(e);
+    alert("Failed to load leaderboard");
+  }
+
+  function short(a){ return a.slice(0,6) + "..." + a.slice(-4); }
+
+  function render(filterTop=false) {
+    tblBody.innerHTML = "";
+    const list = filterTop ? rows.filter(r=>r.top) : rows;
+    list.forEach((r,idx)=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${idx+1}</td>
+        <td>${r.nick || "-"}</td>
+        <td class="addr" title="${r.addr}">${short(r.addr)}</td>
+        <td>${r.coins}</td>
+        <td>${r.rewardPHR.toFixed(4)}</td>
+        <td>${r.top ? "Completed all 3" : "-"}</td>`;
+      tblBody.appendChild(tr);
+    });
+  }
+
+  tabAll.onclick = () => { tabAll.classList.add("active"); tabTop.classList.remove("active"); render(false); };
+  tabTop.onclick = () => { tabTop.classList.add("active"); tabAll.classList.remove("active"); render(true); };
+
+  render(false);
+})();
+  </script>
+</body>
+</html>

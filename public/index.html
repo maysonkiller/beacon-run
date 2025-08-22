@@ -1,0 +1,167 @@
+<!-- index.html (added fixed positioning for walletStatus to avoid page expansion) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Beacon Run</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <!-- сетка + контракт -->
+  <script src="/network.js"></script>
+  <script src="/contract.js"></script>
+</head>
+<body>
+
+  <!-- Лого слева (кликабельно) -->
+  <div class="logo" onclick="window.open('https://testnet.pharosnetwork.xyz/', '_blank')">
+    <img src="/img/pharos-logo.png" alt="Pharos Logo">
+  </div>
+
+  <!-- Кнопки справа сверху -->
+  <div class="top-buttons">
+    <button id="connectBtn">🔗 Connect Wallet</button>
+    <button id="leaderBtn">🏆 Leaderboard</button>
+    <button id="musicBtn">🎵 Music On</button>
+  </div>
+
+  <!-- Заголовок -->
+  <div class="title">
+    <h1>Play Beacon Run</h1>
+    <h2>Win Tokens</h2>
+  </div>
+
+  <!-- Видео-рамка -->
+  <div class="video-frame">
+    <video id="introVideo" autoplay loop muted playsinline>
+      <source src="/video/intro.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </div>
+
+  <!-- Start + соцсети -->
+  <div class="start-container">
+    <button id="startBtn" disabled>▶ Start Game</button>
+    <div id="walletStatus" style="margin-top:10px; color:#0ff; font-size:14px;"></div>
+    <div class="socials">
+      <a href="https://twitter.com/pharos_network" target="_blank" class="social-btn">
+        <img src="/img/twitter.png" alt="Twitter" class="twitter-icon"> PHAROS_NETWORK
+      </a>
+      <a href="https://twitter.com/maysonkiller23" target="_blank" class="social-btn">
+        <img src="/img/twitter.png" alt="Twitter" class="twitter-icon"> Developer
+      </a>
+    </div>
+  </div>
+
+  <!-- Музыка -->
+  <audio id="bgMusic" src="/music/music.mp3" loop></audio>
+
+  <script>
+const bgMusic = document.getElementById("bgMusic");
+const musicBtn = document.getElementById("musicBtn");
+const connectBtn = document.getElementById("connectBtn");
+const startBtn = document.getElementById("startBtn");
+const leaderBtn = document.getElementById("leaderBtn");
+const walletStatus = document.getElementById("walletStatus");
+
+let provider, signer, contract, userAddress;
+
+// Modal for nickname
+function nicknameModal(onSubmit) {
+  const wrap = document.createElement("div");
+  Object.assign(wrap.style, { position:"fixed", inset:"0", display:"grid", placeItems:"center", background:"rgba(0,0,0,.6)", zIndex:"9999" });
+  wrap.innerHTML = `<div style="min-width:320px;max-width:90vw;background:rgba(10,12,25,.95);border:2px solid #0ff;border-radius:16px;padding:18px;color:#0ff;font-family:'Space Grotesk',sans-serif;box-shadow:0 10px 40px rgba(0,255,255,.25)">
+    <div style="text-align:center">
+      <h2>Enter Nickname</h2>
+      <input id="nickInput" type="text" style="width:100%; padding:10px; border:2px solid #0ff; background:#000; color:#0ff; border-radius:8px; margin-bottom:10px;" placeholder="3-32 characters">
+      <button id="submitNick" style="padding:10px 20px; border:2px solid #0ff; background:#000; color:#0ff; border-radius:8px; cursor:pointer;">Submit</button>
+    </div>
+  </div>`;
+  document.body.appendChild(wrap);
+  const input = wrap.querySelector("#nickInput");
+  const btn = wrap.querySelector("#submitNick");
+  btn.onclick = () => {
+    const nick = input.value.trim();
+    if (nick.length >= 3 && nick.length <= 32) {
+      onSubmit(nick);
+      wrap.remove();
+    } else {
+      alert("Invalid nickname.");
+    }
+  };
+  return { el: wrap };
+}
+
+// ===== Музыка =====
+musicBtn.addEventListener("click", () => {
+  if (bgMusic.paused) {
+    bgMusic.play().catch(()=>{});
+    musicBtn.textContent = "🎵 Music On";
+  } else {
+    bgMusic.pause();
+    musicBtn.textContent = "🎵 Music Off";
+  }
+});
+
+// ===== Лидерборд =====
+leaderBtn.addEventListener("click", () => {
+  window.location.href = "/leaderboard.html";
+});
+
+// ===== Подключение кошелька + регистрация =====
+async function connect() {
+  if (!window.ethereum) { alert("Install an EVM-compatible wallet like MetaMask!"); return; }
+  await window.ensurePharos(); // добавить/переключить сеть Pharos
+
+  provider = new ethers.providers.Web3Provider(window.ethereum);
+  await provider.send("eth_requestAccounts", []);
+  signer = provider.getSigner();
+  userAddress = await signer.getAddress();
+  contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
+
+  try {
+    const p = await contract.players(userAddress);
+    if (!p.registered) {
+      nicknameModal(async (nickname) => {
+        try {
+          const tx = await contract.registerPlayer(nickname, { gasLimit: 300000 });
+          await tx.wait();
+          alert(`Registered: ${nickname}`);
+          walletStatus.textContent = `Connected: ${shortAddress(userAddress)} | Name: ${nickname}`;
+          startBtn.disabled = false;
+        } catch (regError) {
+          console.error(regError);
+          if (regError.message.includes("already registered") || (regError.data && regError.data.message.includes("already registered"))) {
+            alert("You are already registered. Welcome back!");
+          } else {
+            alert("Registration failed.");
+          }
+        }
+      });
+    } else {
+      alert(`Welcome back, ${p.nickname}!`);
+      walletStatus.textContent = `Connected: ${shortAddress(userAddress)} | Name: ${p.nickname}`;
+      startBtn.disabled = false;
+    }
+  } catch (e) {
+    console.error(e);
+    alert("Failed to connect/verify player.");
+  }
+}
+
+function shortAddress(addr) {
+  return addr.slice(0,6) + "..." + addr.slice(-4);
+}
+
+connectBtn.addEventListener("click", connect);
+
+// ===== Переход в игру =====
+startBtn.addEventListener("click", async () => {
+  if (!signer) { alert("Connect wallet first!"); return; }
+  const url = new URL("/game.html", window.location.origin);
+  window.location.href = url.toString();
+});
+  </script>
+</body>
+</html>
