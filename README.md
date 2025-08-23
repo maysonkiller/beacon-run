@@ -1,4 +1,4 @@
-# Beacon Run
+🌊 Beacon Run
 
 ## Overview
 **Beacon Run** is an engaging blockchain-based endless runner game built on the **Pharos Testnet** (an EVM-compatible blockchain).  
@@ -20,8 +20,8 @@ Powered by **ethers.js** for wallet connections and smart contract calls, the ga
 - **Testnet Ready**: Deployed on **Pharos Testnet** for low-cost, risk-free play.  
 
 ---
-
-## How to Play
+🎮
+## How to Play 
 ### Objective
 Run from left to right, collect coins, dodge waves, and reach the lighthouse.  
 
