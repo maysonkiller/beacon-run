@@ -2,6 +2,8 @@
 document.addEventListener("DOMContentLoaded", () => {
   // === DOM ===
   const startGameBtn = document.getElementById("startGameBtn");
+  const mainMenuBtn = document.getElementById("mainMenuBtn");
+  const leaderboardBtn = document.getElementById("leaderboardBtn");
   const coinsContainer = document.getElementById("coins-container");
   const wavesContainer = document.getElementById("waves-container");
   const character = document.getElementById("character");
@@ -98,6 +100,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // === Запуск уровня ===
   async function startLevel() {
     startGameBtn.style.display = "none"; // hide start button
+    mainMenuBtn.style.display = "none";
+    leaderboardBtn.style.display = "none";
     resetWorld();
     applyLevel(currentLevel);
     countdown(3, ()=> {
@@ -346,6 +350,8 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     // show start button again if needed
     startGameBtn.style.display = "block";
+    mainMenuBtn.style.display = "block";
+    leaderboardBtn.style.display = "block";
     startGameBtn.disabled = false;
     resetWorld();
   }
@@ -363,7 +369,65 @@ document.addEventListener("DOMContentLoaded", () => {
       ${btn("Restart from Level 1","btnR","width:100%;margin-top:10px")}</div>`);
     m.el.querySelector("#btnR").onclick = ()=>{ m.close(); currentLevel=1; showPaymentModal(() => { startLevel(); }); };
     startGameBtn.style.display = "block";
+    mainMenuBtn.style.display = "block";
+    leaderboardBtn.style.display = "block";
     startGameBtn.disabled = false;
     resetWorld();
+  }
+  mainMenuBtn.addEventListener("click", () => {
+    window.location.href = "index.html";
+  });
+  leaderboardBtn.addEventListener("click", () => {
+    window.location.href = "leaderboard.html";
+  });
+  // Mobile touch controls
+  if ('ontouchstart' in window) {
+    const controls = document.createElement("div");
+    controls.style.position = "fixed";
+    controls.style.bottom = "0";
+    controls.style.left = "0";
+    controls.style.width = "100%";
+    controls.style.display = "flex";
+    controls.style.justifyContent = "space-between";
+    controls.style.padding = "10px";
+    controls.style.boxSizing = "border-box";
+    controls.style.zIndex = "1000";
+    const leftBtn = document.createElement("button");
+    leftBtn.textContent = "Left";
+    leftBtn.style.padding = "20px";
+    leftBtn.style.border = "2px solid #0ff";
+    leftBtn.style.background = "#000";
+    leftBtn.style.color = "#0ff";
+    leftBtn.style.borderRadius = "8px";
+    leftBtn.style.fontSize = "20px";
+    leftBtn.style.opacity = "0.7";
+    leftBtn.addEventListener("touchstart", () => keys["arrowleft"] = true);
+    leftBtn.addEventListener("touchend", () => keys["arrowleft"] = false);
+    const rightBtn = document.createElement("button");
+    rightBtn.textContent = "Right";
+    rightBtn.style.padding = "20px";
+    rightBtn.style.border = "2px solid #0ff";
+    rightBtn.style.background = "#000";
+    rightBtn.style.color = "#0ff";
+    rightBtn.style.borderRadius = "8px";
+    rightBtn.style.fontSize = "20px";
+    rightBtn.style.opacity = "0.7";
+    rightBtn.addEventListener("touchstart", () => keys["arrowright"] = true);
+    rightBtn.addEventListener("touchend", () => keys["arrowright"] = false);
+    const jumpBtn = document.createElement("button");
+    jumpBtn.textContent = "Jump";
+    jumpBtn.style.padding = "20px";
+    jumpBtn.style.border = "2px solid #0ff";
+    jumpBtn.style.background = "#000";
+    jumpBtn.style.color = "#0ff";
+    jumpBtn.style.borderRadius = "8px";
+    jumpBtn.style.fontSize = "20px";
+    jumpBtn.style.opacity = "0.7";
+    jumpBtn.addEventListener("touchstart", () => keys[" "] = true);
+    jumpBtn.addEventListener("touchend", () => keys[" "] = false);
+    controls.appendChild(leftBtn);
+    controls.appendChild(rightBtn);
+    controls.appendChild(jumpBtn);
+    document.body.appendChild(controls);
   }
 });

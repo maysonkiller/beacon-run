@@ -1,4 +1,4 @@
-// index.js
+// script.js
 const bgMusic = document.getElementById("bgMusic");
 const musicBtn = document.getElementById("musicBtn");
 const connectBtn = document.getElementById("connectBtn");
