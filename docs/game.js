@@ -12,56 +12,64 @@ document.addEventListener("DOMContentLoaded", () => {
   const hint = document.getElementById("hint");
   // === Ethers ===
   let provider, signer, contract, playerAddress;
-async function connect() {
-  let isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-  if (isMobile) {
+  async function connect() {
+    let isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     try {
-      const wcProvider = await window.EthereumProvider.init({
-        projectId: "f3a4411a5d6201d00fd86817d41b64e8", // твой ProjectID
-        chains: [parseInt(window.PHAROS.chainId, 16)],
-        rpcMap: {
-          [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
-        },
-        showQrModal: true,
-      });
+      if (isMobile) {
+        if (!window.EthereumProvider) {
+          throw new Error("EthereumProvider library not loaded. Please check your network or try a different browser.");
+        }
+        const wcProvider = await window.EthereumProvider.init({
+          projectId: "f3a4411a5d6201d00fd86817d41b64e8",
+          chains: [parseInt(window.PHAROS.chainId, 16)],
+          rpcMap: {
+            [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
+          },
+          showQrModal: false, // Disable for mobile
+          metadata: {
+            name: "Beacon Run",
+            description: "Play Beacon Run and Win Tokens",
+            url: window.location.origin,
+            icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"]
+          }
+        });
 
-      await wcProvider.enable();
-      provider = new ethers.providers.Web3Provider(wcProvider);
+        wcProvider.on("display_uri", (uri) => {
+          window.location.href = `metamask://wc?uri=${encodeURIComponent(uri)}`; // Or adjust for other wallets
+        });
+
+        await wcProvider.enable();
+        provider = new ethers.providers.Web3Provider(wcProvider);
+      } else {
+        if (!window.ethereum) { 
+          alert("Install an EVM-compatible wallet like MetaMask, Trust Wallet, or any other that injects window.ethereum!"); 
+          return false; 
+        }
+        try {
+          await window.ensurePharos();
+        } catch (e) {
+          console.error("Network switch error:", e);
+          alert("Failed to switch to Pharos Testnet. Please check your wallet settings or disable conflicting extensions.");
+          return false;
+        }
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+      }
+      signer = provider.getSigner();
+      playerAddress = await signer.getAddress();
+      contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
+      const p = await contract.players(playerAddress);
+      if (!p.registered) {
+        alert("Please register on the main page first.");
+        location.href = "/"; return false;
+      }
+      return true;
     } catch (e) {
       console.error(e);
-      alert("WalletConnect v2 error: " + (e.message || "Unknown error"));
+      alert("WalletConnect error: " + e.message);
       return false;
     }
-  } else {
-    if (!window.ethereum) { 
-      alert("Install MetaMask or another EVM wallet!");
-      return false; 
-    }
-    try {
-      await window.ensurePharos();
-    } catch (e) {
-      console.error("Network switch error:", e);
-      alert("Failed to switch to Pharos Testnet.");
-      return false;
-    }
-    provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
   }
-
-  signer = provider.getSigner();
-  playerAddress = await signer.getAddress();
-  contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
-
-  const p = await contract.players(playerAddress);
-  if (!p.registered) {
-    alert("Please register on the main page first.");
-    location.href = "/";
-    return false;
-  }
-  return true;
-}
-
   // === GAME STATE ===
   let gameActive = false;
   let currentLevel = 1;

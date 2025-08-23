@@ -10,16 +10,19 @@
 
   let rows = [];
   try {
-    const data = await contract.getAllPlayersData();
-    const [addrs, nicks, totalCoinsArr, totalRewardArr, completedAllArr] = data;
+    const addrs = await contract.getAllPlayers();
 
-    rows = addrs.map((a,i)=>({
-      addr:a,
-      nick:nicks[i],
-      coins: Number(totalCoinsArr[i].toString()),
-      rewardPHR: Number(ethers.utils.formatEther(totalRewardArr[i] || 0)),
-      top: completedAllArr[i]
-    }));
+    // Fetch data for each player individually since getAllPlayersData is not available
+    for (const addr of addrs) {
+      const p = await contract.players(addr);
+      rows.push({
+        addr: addr,
+        nick: p.nickname,
+        coins: Number(p.totalCoins.toString()),
+        rewardPHR: Number(ethers.utils.formatEther(p.totalReward || 0)),
+        top: p.completedAll
+      });
+    }
 
     // сортируем по монетам, убыв
     rows.sort((x,y)=> y.coins - x.coins);
