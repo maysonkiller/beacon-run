@@ -1,3 +1,4 @@
+// leaderboard.js
 (async function(){
   const tblBody = document.querySelector("#tbl tbody");
   const tabAll = document.getElementById("tabAll");
@@ -16,7 +17,7 @@
     rows = addrs.map((a,i)=>({
       addr:a,
       nick:nicks[i],
-      coins: Number(ethers.BigNumber.from(totalCoinsArr[i]).toString()),
+      coins: Number(totalCoinsArr[i].toString()),
       rewardPHR: Number(ethers.utils.formatEther(totalRewardArr[i] || 0)),
       top: completedAllArr[i]
     }));
