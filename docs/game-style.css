@@ -72,7 +72,7 @@ html, body {
 }
 
 /* Общий стиль для кнопок */
-#startGameBtn, #leaderboardBtn, #mainMenuBtn {
+#startGameBtn {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
@@ -87,22 +87,18 @@ html, body {
   transition: .3s;
 }
 
-#startGameBtn:hover, #leaderboardBtn:hover, #mainMenuBtn:hover {
+#startGameBtn:hover {
   background: #0ff;
   color: #000;
 }
 
 /* Позиции кнопок */
 #startGameBtn {
-  bottom: 170px;
-}
-
-#leaderboardBtn {
-  bottom: 100px;
-}
-
-#mainMenuBtn {
   bottom: 30px;
+}
+
+#mainMenuBtn, #leaderboardBtn {
+  display: none;
 }
 
 /* Счётчики/подсказки */

@@ -321,6 +321,8 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       html += `<div style="margin-top:6px">${btn("Restart Level","btnRestart","width:100%")}</div>`;
     }
+    html += `<div style="margin-top:6px">${btn("Leaderboard","btnLeader","width:100%")}</div>`;
+    html += `<div style="margin-top:6px">${btn("Main Menu","btnMenu","width:100%")}</div>`;
     html += `</div>`;
     const m = modal(html);
     if (reached) {
@@ -348,10 +350,12 @@ document.addEventListener("DOMContentLoaded", () => {
       m.close();
       showPaymentModal(() => { startLevel(); });
     };
+    const leaderBtnModal = m.el.querySelector("#btnLeader");
+    if (leaderBtnModal) leaderBtnModal.onclick = () => { m.close(); window.location.href = "leaderboard.html"; };
+    const menuBtnModal = m.el.querySelector("#btnMenu");
+    if (menuBtnModal) menuBtnModal.onclick = () => { m.close(); window.location.href = "index.html"; };
     // show start button again if needed
     startGameBtn.style.display = "block";
-    mainMenuBtn.style.display = "block";
-    leaderboardBtn.style.display = "block";
     startGameBtn.disabled = false;
     resetWorld();
   }
@@ -366,11 +370,16 @@ document.addEventListener("DOMContentLoaded", () => {
       <div style="font-size:22px;margin-bottom:6px">You were hit by a wave!</div>
       <div>Coins collected: <b>${collectedCoins}/${totalCoins}</b></div>
       <div style="margin-top:6px">You go back to Level 1.</div>
-      ${btn("Restart from Level 1","btnR","width:100%;margin-top:10px")}</div>`);
+      ${btn("Restart from Level 1","btnR","width:100%;margin-top:10px")}
+      ${btn("Leaderboard","btnLeader","width:100%;margin-top:10px")}
+      ${btn("Main Menu","btnMenu","width:100%;margin-top:10px")}
+      </div>`);
     m.el.querySelector("#btnR").onclick = ()=>{ m.close(); currentLevel=1; showPaymentModal(() => { startLevel(); }); };
+    const leaderBtnModal = m.el.querySelector("#btnLeader");
+    if (leaderBtnModal) leaderBtnModal.onclick = () => { m.close(); window.location.href = "leaderboard.html"; };
+    const menuBtnModal = m.el.querySelector("#btnMenu");
+    if (menuBtnModal) menuBtnModal.onclick = () => { m.close(); window.location.href = "index.html"; };
     startGameBtn.style.display = "block";
-    mainMenuBtn.style.display = "block";
-    leaderboardBtn.style.display = "block";
     startGameBtn.disabled = false;
     resetWorld();
   }
