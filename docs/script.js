@@ -85,13 +85,24 @@ leaderBtn.addEventListener("click", () => {
 
 // ===== Подключение кошелька + регистрация =====
 async function connect() {
-  if (!window.ethereum) { alert("Install an EVM-compatible wallet like MetaMask!"); return; }
-  await window.ensurePharos();
-  provider = new ethers.providers.Web3Provider(window.ethereum);
-  await provider.send("eth_requestAccounts", []);
-  signer = provider.getSigner();
-  userAddress = await signer.getAddress();
-  contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
+  if (!window.ethereum) {
+    alert("Install an EVM-compatible wallet like MetaMask or use a wallet app on mobile!");
+    return;
+  }
+
+  try {
+    await window.ensurePharos();
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    signer = provider.getSigner();
+    userAddress = await signer.getAddress();
+    contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
+  } catch (e) {
+    console.error(e);
+    alert("Failed to connect wallet. If you have multiple wallet extensions installed, disable all except one (e.g., keep only MetaMask). On mobile, try opening in your wallet's browser. Check console for details.");
+    return;
+  }
+
   try {
     const p = await contract.players(userAddress);
     if (!p.registered) {
@@ -119,7 +130,7 @@ async function connect() {
     }
   } catch (e) {
     console.error(e);
-    alert("Failed to connect/verify player.");
+    alert("Failed to connect/verify player. Check console for details.");
   }
 }
 
