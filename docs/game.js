@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const p = await contract.players(playerAddress);
       if (!p.registered) {
         alert("Please register on the main page first.");
-        location.href = "/"; return false;
+        location.href = "index.html"; return false;
       }
       return true;
     } catch (e) {
@@ -268,7 +268,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const paddingLeft = lhRect.width * 0.50;   // Сжатие слева (стандартное, не меняем)
       const paddingRight = lhRect.width * 0.05;  // Меньше сжатие справа — хитбокс ближе к правому краю и растянут вправо
       const paddingTop = lhRect.height * 0.50;   // Сжатие сверху (стандартное)
-      const paddingBottom = lhRect.height * 0.05; // Меньше сжатие снизу — хитбокс больше вниз (растянут вниз)
+      const paddingBottom = lhRect.height * 0.05; // Меньше сжатие снизу — хитбокс больше вниз ( растянут вниз)
       const lhHitbox = {
         left: lhRect.left + paddingLeft,         // Левый край: сдвигаем вправо на paddingLeft
         right: lhRect.right - paddingRight,      // Правый край: отнимаем меньше, чтобы растянуть вправо
