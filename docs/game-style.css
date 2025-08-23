@@ -71,10 +71,9 @@ html, body {
   z-index: 4;
 }
 
-/* Кнопка Start Game */
-#startGameBtn {
+/* Общий стиль для кнопок */
+#startGameBtn, #leaderboardBtn, #mainMenuBtn {
   position: absolute;
-  bottom: 30px;
   left: 50%;
   transform: translateX(-50%);
   padding: 15px 30px;
@@ -87,51 +86,23 @@ html, body {
   z-index: 5;
   transition: .3s;
 }
-#startGameBtn:hover {
+
+#startGameBtn:hover, #leaderboardBtn:hover, #mainMenuBtn:hover {
   background: #0ff;
   color: #000;
 }
 
-/* Кнопка Main Menu (стиль как у Start Game, но позиция слева) */
-#mainMenuBtn {
-  position: absolute;
-  bottom: 30px;
-  left: 25%;
-  transform: translateX(-50%);
-  padding: 15px 30px;
-  font-size: 20px;
-  border: 2px solid #0ff;
-  border-radius: 12px;
-  background: #000;
-  color: #0ff;
-  cursor: pointer;
-  z-index: 5;
-  transition: .3s;
-}
-#mainMenuBtn:hover {
-  background: #0ff;
-  color: #000;
+/* Позиции кнопок */
+#startGameBtn {
+  bottom: 170px;
 }
 
-/* Кнопка Leaderboard (стиль как у Start Game, но позиция справа) */
 #leaderboardBtn {
-  position: absolute;
-  bottom: 30px;
-  left: 75%;
-  transform: translateX(-50%);
-  padding: 15px 30px;
-  font-size: 20px;
-  border: 2px solid #0ff;
-  border-radius: 12px;
-  background: #000;
-  color: #0ff;
-  cursor: pointer;
-  z-index: 5;
-  transition: .3s;
+  bottom: 100px;
 }
-#leaderboardBtn:hover {
-  background: #0ff;
-  color: #000;
+
+#mainMenuBtn {
+  bottom: 30px;
 }
 
 /* Счётчики/подсказки */
