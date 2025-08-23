@@ -44,7 +44,7 @@ html, body {
   height: 520px;   /* базовая высота маяка */
   bottom: 0;
   right: 0;       /* спавн в правом нижнем углу */
-  --lighthouse-scale: 2; /* изменяйте это значение для масштабирования (например, 1.5, 2, 3) */
+  --lighthouse-scale: 1; /* изменяйте это значение для масштабирования (например, 1.5, 2, 3) */
   transform: scale(var(--lighthouse-scale));
   transform-origin: bottom right; /* точка масштабирования — правый нижний угол */
 }
@@ -52,7 +52,7 @@ html, body {
 /* Монета: измените width для размера */
 .coin {
   position: absolute;
-  width: 30px;
+  width: 35px;
   z-index: 4;
 }
 

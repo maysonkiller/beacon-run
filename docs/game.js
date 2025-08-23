@@ -12,53 +12,56 @@ document.addEventListener("DOMContentLoaded", () => {
   const hint = document.getElementById("hint");
   // === Ethers ===
   let provider, signer, contract, playerAddress;
-  async function connect() {
-    let isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    if (isMobile) {
-      if (typeof WalletConnectProvider === 'undefined') {
-        alert("WalletConnect library not loaded.");
-        return false;
-      }
-      try {
-        const wcProvider = new WalletConnectProvider({
-          chainId: parseInt(window.PHAROS.chainId, 16),
-          rpc: {
-            [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
-          },
-          qrcode: true,
-        });
-        await wcProvider.enable();
-        provider = new ethers.providers.Web3Provider(wcProvider);
-      } catch (e) {
-        console.error(e);
-        alert("Failed to connect via WalletConnect: " + (e.message || "Unknown error"));
-        return false;
-      }
-    } else {
-      if (!window.ethereum) { 
-        alert("Install an EVM-compatible wallet like MetaMask, Trust Wallet, or any other that injects window.ethereum!"); 
-        return false; 
-      }
-      try {
-        await window.ensurePharos();
-      } catch (e) {
-        console.error("Network switch error:", e);
-        alert("Failed to switch to Pharos Testnet. Please check your wallet settings or disable conflicting extensions.");
-        return false;
-      }
-      provider = new ethers.providers.Web3Provider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
+async function connect() {
+  let isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  if (isMobile) {
+    try {
+      const wcProvider = await window.EthereumProvider.init({
+        projectId: "f3a4411a5d6201d00fd86817d41b64e8", // твой ProjectID
+        chains: [parseInt(window.PHAROS.chainId, 16)],
+        rpcMap: {
+          [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
+        },
+        showQrModal: true,
+      });
+
+      await wcProvider.enable();
+      provider = new ethers.providers.Web3Provider(wcProvider);
+    } catch (e) {
+      console.error(e);
+      alert("WalletConnect v2 error: " + (e.message || "Unknown error"));
+      return false;
     }
-    signer = provider.getSigner();
-    playerAddress = await signer.getAddress();
-    contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
-    const p = await contract.players(playerAddress);
-    if (!p.registered) {
-      alert("Please register on the main page first.");
-      location.href = "/"; return false;
+  } else {
+    if (!window.ethereum) { 
+      alert("Install MetaMask or another EVM wallet!");
+      return false; 
     }
-    return true;
+    try {
+      await window.ensurePharos();
+    } catch (e) {
+      console.error("Network switch error:", e);
+      alert("Failed to switch to Pharos Testnet.");
+      return false;
+    }
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
   }
+
+  signer = provider.getSigner();
+  playerAddress = await signer.getAddress();
+  contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
+
+  const p = await contract.players(playerAddress);
+  if (!p.registered) {
+    alert("Please register on the main page first.");
+    location.href = "/";
+    return false;
+  }
+  return true;
+}
+
   // === GAME STATE ===
   let gameActive = false;
   let currentLevel = 1;
