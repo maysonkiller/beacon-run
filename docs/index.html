@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Beacon Run</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -19,9 +20,9 @@
 
   <!-- Кнопки справа сверху -->
   <div class="top-buttons">
-    <button id="connectBtn">🔗 Connect Wallet</button>
-    <button id="leaderBtn">🏆 Leaderboard</button>
-    <button id="musicBtn">🎵 Music On</button>
+    <button id="connectBtn"> Connect Wallet</button>
+    <button id="leaderBtn"> Leaderboard</button>
+    <button id="musicBtn" title="Click to enable music"> Music On</button>
   </div>
 
   <!-- Заголовок -->
@@ -40,7 +41,7 @@
 
   <!-- Start + соцсети -->
   <div class="start-container">
-    <button id="startBtn" disabled>▶ Start Game</button>
+    <button id="startBtn" disabled> Start Game</button>
     <div id="walletStatus" style="margin-top:10px; color:#0ff; font-size:14px;"></div>
     <div class="socials">
       <a href="https://twitter.com/pharos_network" target="_blank" class="social-btn">
@@ -54,7 +55,6 @@
 
   <!-- Музыка -->
   <audio id="bgMusic" src="music/music.mp3" loop></audio>
-
   <script>
 const bgMusic = document.getElementById("bgMusic");
 const musicBtn = document.getElementById("musicBtn");
@@ -62,9 +62,7 @@ const connectBtn = document.getElementById("connectBtn");
 const startBtn = document.getElementById("startBtn");
 const leaderBtn = document.getElementById("leaderBtn");
 const walletStatus = document.getElementById("walletStatus");
-
 let provider, signer, contract, userAddress;
-
 // ===== Modal for nickname =====
 function nicknameModal(onSubmit) {
   const wrap = document.createElement("div");
@@ -72,7 +70,6 @@ function nicknameModal(onSubmit) {
     position: "fixed", inset: "0", display: "grid", placeItems: "center", 
     background: "rgba(0,0,0,.6)", zIndex: "9999"
   });
-
   wrap.innerHTML = `
     <div style="
       min-width: 320px;
@@ -111,12 +108,9 @@ function nicknameModal(onSubmit) {
         ">Submit</button>
     </div>
   `;
-
   document.body.appendChild(wrap);
-
   const input = wrap.querySelector("#nickInput");
   const btn = wrap.querySelector("#submitNick");
-
   btn.onclick = () => {
     const nick = input.value.trim();
     if (nick.length >= 3 && nick.length <= 32) {
@@ -128,34 +122,29 @@ function nicknameModal(onSubmit) {
   };
   return { el: wrap };
 }
-
 // ===== Музыка =====
 musicBtn.addEventListener("click", () => {
   if (bgMusic.paused) {
     bgMusic.play().catch(()=>{});
-    musicBtn.textContent = "🎵 Music On";
+    musicBtn.textContent = " Music On";
   } else {
     bgMusic.pause();
-    musicBtn.textContent = "🎵 Music Off";
+    musicBtn.textContent = " Music Off";
   }
 });
-
 // ===== Лидерборд =====
 leaderBtn.addEventListener("click", () => {
   window.location.href = "leaderboard.html";
 });
-
 // ===== Подключение кошелька + регистрация =====
 async function connect() {
   if (!window.ethereum) { alert("Install an EVM-compatible wallet like MetaMask!"); return; }
   await window.ensurePharos();
-
   provider = new ethers.providers.Web3Provider(window.ethereum);
   await provider.send("eth_requestAccounts", []);
   signer = provider.getSigner();
   userAddress = await signer.getAddress();
   contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
-
   try {
     const p = await contract.players(userAddress);
     if (!p.registered) {
@@ -186,13 +175,10 @@ async function connect() {
     alert("Failed to connect/verify player.");
   }
 }
-
 function shortAddress(addr) {
   return addr.slice(0,6) + "..." + addr.slice(-4);
 }
-
 connectBtn.addEventListener("click", connect);
-
 // ===== Переход в игру =====
 startBtn.addEventListener("click", async () => {
   if (!signer) { 
