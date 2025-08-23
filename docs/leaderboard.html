@@ -28,7 +28,10 @@
 <body>
   <div class="wrap">
     <h1>Leaderboard</h1>
-    <div class="back"><a href="index.html">← back to main</a></div>
+    <div style="text-align: center; margin-bottom: 20px;">
+      <button onclick="window.location.href='index.html'" style="padding: 10px 20px; border: 2px solid #0ff; background: #000; color: #0ff; border-radius: 8px; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-size: 16px; margin-right: 10px;">Back to Main</button>
+      <button onclick="window.location.href='game.html'" style="padding: 10px 20px; border: 2px solid #0ff; background: #000; color: #0ff; border-radius: 8px; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-size: 16px;">Play Again</button>
+    </div>
 
     <div class="tabs">
       <button id="tabAll" class="active">All players</button>
@@ -43,10 +46,6 @@
       </thead>
       <tbody></tbody>
     </table>
-    <div style="text-align: center; margin-top: 20px;">
-      <button onclick="window.location.href='index.html'" style="padding: 10px 20px; border: 2px solid #0ff; background: #000; color: #0ff; border-radius: 8px; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-size: 16px; margin-bottom: 10px;">Back to Main</button>
-      <button onclick="window.location.href='game.html'" style="padding: 10px 20px; border: 2px solid #0ff; background: #000; color: #0ff; border-radius: 8px; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-size: 16px;">Play Again</button>
-    </div>
   </div>
 
   <script src="leaderboard.js"></script>
