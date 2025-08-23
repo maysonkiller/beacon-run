@@ -1,4 +1,3 @@
-// leaderboard.js
 (async function(){
   const tblBody = document.querySelector("#tbl tbody");
   const tabAll = document.getElementById("tabAll");

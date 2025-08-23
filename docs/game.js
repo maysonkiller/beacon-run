@@ -1,4 +1,3 @@
-// game.js
 document.addEventListener("DOMContentLoaded", () => {
   // === DOM ===
   const startGameBtn = document.getElementById("startGameBtn");
@@ -14,19 +13,42 @@ document.addEventListener("DOMContentLoaded", () => {
   // === Ethers ===
   let provider, signer, contract, playerAddress;
   async function connect() {
-    if (!window.ethereum) { 
-      alert("Install an EVM-compatible wallet like MetaMask, Trust Wallet, or any other that injects window.ethereum!"); 
-      return false; 
+    let isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+      if (typeof WalletConnectProvider === 'undefined') {
+        alert("WalletConnect library not loaded.");
+        return false;
+      }
+      try {
+        const wcProvider = new WalletConnectProvider({
+          chainId: parseInt(window.PHAROS.chainId, 16),
+          rpc: {
+            [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
+          },
+          qrcode: true,
+        });
+        await wcProvider.enable();
+        provider = new ethers.providers.Web3Provider(wcProvider);
+      } catch (e) {
+        console.error(e);
+        alert("Failed to connect via WalletConnect: " + (e.message || "Unknown error"));
+        return false;
+      }
+    } else {
+      if (!window.ethereum) { 
+        alert("Install an EVM-compatible wallet like MetaMask, Trust Wallet, or any other that injects window.ethereum!"); 
+        return false; 
+      }
+      try {
+        await window.ensurePharos();
+      } catch (e) {
+        console.error("Network switch error:", e);
+        alert("Failed to switch to Pharos Testnet. Please check your wallet settings or disable conflicting extensions.");
+        return false;
+      }
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
     }
-    try {
-      await window.ensurePharos();
-    } catch (e) {
-      console.error("Network switch error:", e);
-      alert("Failed to switch to Pharos Testnet. Please check your wallet settings or disable conflicting extensions.");
-      return false;
-    }
-    provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
     signer = provider.getSigner();
     playerAddress = await signer.getAddress();
     contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
@@ -359,13 +381,17 @@ document.addEventListener("DOMContentLoaded", () => {
     startGameBtn.disabled = false;
     resetWorld();
   }
-  function gameOver(byWave=true) {
+  async function gameOver(byWave=true) {
     if (!gameActive) return;
     gameActive = false;
     clearTimeout(coinSpawnTimer); clearTimeout(waveSpawnTimer);
     // submit without reward
-    try { contract.submitResult(collectedCoins, currentLevel, false, { gasLimit: 300000 }); }
-    catch(e){ console.error(e); }
+    try {
+      const tx = await contract.submitResult(collectedCoins, currentLevel, false, { gasLimit: 300000 });
+      await tx.wait();
+    } catch(e){ 
+      console.error(e); 
+    }
     const m = modal(`<div style="text-align:center">
       <div style="font-size:22px;margin-bottom:6px">You were hit by a wave!</div>
       <div>Coins collected: <b>${collectedCoins}/${totalCoins}</b></div>

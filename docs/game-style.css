@@ -41,7 +41,7 @@ html, body {
 #lighthouse {
   position: absolute;
   width: 380px;   /* базовая ширина маяка */
-  height: 520px;   /* базовая высота маяка */
+  height: 820px;   /* базовая высота маяка */
   bottom: 0;
   right: 0;       /* спавн в правом нижнем углу */
   --lighthouse-scale: 1; /* изменяйте это значение для масштабирования (например, 1.5, 2, 3) */
@@ -52,7 +52,7 @@ html, body {
 /* Монета: измените width для размера */
 .coin {
   position: absolute;
-  width: 30px;
+  width: 40px;
   z-index: 4;
 }
 

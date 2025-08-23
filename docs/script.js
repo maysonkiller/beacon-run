@@ -1,4 +1,3 @@
-// script.js
 const bgMusic = document.getElementById("bgMusic");
 const musicBtn = document.getElementById("musicBtn");
 const connectBtn = document.getElementById("connectBtn");
@@ -85,10 +84,39 @@ leaderBtn.addEventListener("click", () => {
 
 // ===== Подключение кошелька + регистрация =====
 async function connect() {
-  if (!window.ethereum) { alert("Install an EVM-compatible wallet like MetaMask!"); return; }
-  await window.ensurePharos();
-  provider = new ethers.providers.Web3Provider(window.ethereum);
-  await provider.send("eth_requestAccounts", []);
+  let isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  if (isMobile) {
+    if (typeof WalletConnectProvider === 'undefined') {
+      alert("WalletConnect library not loaded.");
+      return;
+    }
+    try {
+      const wcProvider = new WalletConnectProvider({
+        chainId: parseInt(window.PHAROS.chainId, 16),
+        rpc: {
+          [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
+        },
+        qrcode: true,
+      });
+      await wcProvider.enable();
+      provider = new ethers.providers.Web3Provider(wcProvider);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to connect via WalletConnect: " + (e.message || "Unknown error"));
+      return;
+    }
+  } else {
+    if (!window.ethereum) { alert("Install an EVM-compatible wallet like MetaMask!"); return; }
+    try {
+      await window.ensurePharos();
+    } catch (e) {
+      console.error(e);
+      alert("Failed to switch to Pharos Testnet.");
+      return;
+    }
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+  }
   signer = provider.getSigner();
   userAddress = await signer.getAddress();
   contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
