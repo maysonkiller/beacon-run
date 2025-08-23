@@ -319,12 +319,21 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   // === START (pay ENTRY_FEE) ===
   startGameBtn.addEventListener("click", async () => {
-    startGameBtn.disabled = true;
-    showPaymentModal(() => {
-      startLevel();
-    });
+  startGameBtn.disabled = true;
+
+  const ok = await connect();
+  if (!ok) {
     startGameBtn.disabled = false;
+    return;
+  }
+
+  showPaymentModal(() => {
+    startLevel();
   });
+
+  startGameBtn.disabled = false;
+});
+
   // === Finish / GameOver ===
   async function finishLevel(reached) {
     if (!gameActive) return;
