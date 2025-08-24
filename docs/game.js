@@ -50,7 +50,9 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           // WalletConnect
           if (!window.EthereumProvider) {
-            throw new Error("EthereumProvider library not loaded. Please check your network or try a different browser.");
+            console.error('WalletConnect library failed to load');
+            alert('WalletConnect не удалось загрузить. Проверьте интернет, перезагрузите страницу или откройте в приложении кошелька, таком как MetaMask/Trust Wallet.');
+            return;
           }
           const wcProvider = await window.EthereumProvider.init({
             projectId: "f3a4411a5d6201d00fd86817d41b64e8",
@@ -76,14 +78,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       } else {
         if (!window.ethereum) { 
-          alert("Install an EVM-compatible wallet like MetaMask, Trust Wallet, or any other that injects window.ethereum!"); 
+          alert("Установите EVM-совместимый кошелек, такой как MetaMask, Trust Wallet или любой другой, который injects window.ethereum!"); 
           return false; 
         }
         try {
           await window.ensurePharos();
         } catch (e) {
           console.error("Network switch error:", e);
-          alert("Failed to switch to Pharos Testnet. Please check your wallet settings or disable conflicting extensions.");
+          alert("Не удалось переключиться на Pharos Testnet. Проверьте настройки кошелька или отключите конфликтующие расширения.");
           return false;
         }
         provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -99,6 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return true;
     } catch (e) {
       console.error(e);
+      alert("Не удалось подключиться: " + e.message);
       return false;
     }
   }
@@ -297,7 +300,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const lhRect = r(lighthouse);
       // Отдельные коэффициенты сжатия (padding) для каждой стороны (0 = нет сжатия, 0.5 = сжимаем на 50% с этой стороны)
       // Уменьшай значение, чтобы расширить хитбокс в эту сторону или сделать ближе к краю
-      const paddingLeft = lhRect.width * 0.30;   // Сжатие слева (стандартное, не меняем)
+      const paddingLeft = lhRect.width * 0.60;   // Сжатие слева (стандартное, не меняем)
       const paddingRight = lhRect.width * 0.05;  // Меньше сжатие справа — хитбокс ближе к правому краю и растянут вправо
       const paddingTop = lhRect.height * 0.50;   // Сжатие сверху (стандартное)
       const paddingBottom = lhRect.height * 0.05; // Меньше сжатие снизу — хитбокс больше вниз ( растянут вниз)
@@ -338,9 +341,9 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (e) {
           console.error(e);
           if (e.code === "ACTION_REJECTED") {
-            alert("Transaction canceled by user.");
+            alert("Транзакция отменена пользователем.");
           } else {
-            alert("Payment failed.");
+            alert("Оплата не удалась.");
           }
         }
       };
@@ -396,10 +399,10 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
           const tx = await contract.claimReward({ gasLimit: 300000 });
           await tx.wait();
-          alert("Reward claimed!");
+          alert("Награда получена!");
         } catch (e) {
           console.error(e);
-          alert("Claim failed.");
+          alert("Получение награды не удалось.");
         } finally {
           claimBtn.disabled = false;
         }

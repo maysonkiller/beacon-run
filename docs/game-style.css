@@ -93,18 +93,23 @@ html, body {
 
 /* HUD части */
 #hud-left {
+  flex: 1; /* Занимает равную долю пространства */
   font-size: 18px;
+  text-align: left; /* Текст слева */
 }
 
 #hud-center {
+  flex: 1; /* Занимает равную долю пространства */
   font-size: 18px;
   font-weight: bold;
+  text-align: center; /* Текст по центру */
 }
 
 #hud-right {
+  flex: 1; /* Занимает равную долю пространства */
   font-size: 14px;
   opacity: 0.9;
-  text-align: right;
+  text-align: right; /* Текст справа */
 }
 
 /* +1 всплывашка */

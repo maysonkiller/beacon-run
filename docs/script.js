@@ -103,7 +103,9 @@ async function connect() {
       } else {
         // WalletConnect для случаев без window.ethereum
         if (!window.EthereumProvider) {
-          throw new Error("EthereumProvider library not loaded. Please check your network or try a different browser.");
+          console.error('WalletConnect library failed to load');
+          alert('WalletConnect не удалось загрузить. Проверьте интернет, перезагрузите страницу или откройте в приложении кошелька, таком как MetaMask/Trust Wallet.');
+          return;
         }
         const wcProvider = await window.EthereumProvider.init({
           projectId: "f3a4411a5d6201d00fd86817d41b64e8",
@@ -132,7 +134,7 @@ async function connect() {
       }
     } else {
       if (!window.ethereum) { 
-        alert("Install an EVM-compatible wallet like MetaMask!");
+        alert("Установите EVM-совместимый кошелек, такой как MetaMask!");
         return; 
       }
       await window.ensurePharos();
@@ -157,7 +159,7 @@ async function connect() {
             walletStatus.textContent = `Connected: ${shortAddress(userAddress)} | Name: ${p.nickname}`;
             startBtn.disabled = false;
           } else {
-            alert("Registration failed.");
+            alert("Регистрация не удалась.");
           }
         }
       });
@@ -167,7 +169,7 @@ async function connect() {
     }
   } catch (e) {
     console.error(e);
-    alert("Failed to connect: " + e.message);
+    alert("Не удалось подключиться: " + e.message);
   }
 }
 
@@ -180,7 +182,7 @@ connectBtn.addEventListener("click", connect);
 // ===== Переход в игру =====
 startBtn.addEventListener("click", async () => {
   if (!signer) { 
-    alert("Connect wallet first!"); 
+    alert("Сначала подключите кошелек!"); 
     return; 
   }
   window.location.href = "game.html";
