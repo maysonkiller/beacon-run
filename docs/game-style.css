@@ -38,42 +38,42 @@ html, body {
   z-index: 0;
 }
 
-/* ==== Размеры элементов ==== */
-/* Персонаж */
+/* ==== Размеры элементов (изменяйте размеры здесь) ==== */
+/* Персонаж: измените width и height для базового размера */
 #character {
   position: absolute;
-  width: 110px;
-  height: 90px;
+  width: 110px;   /* базовая ширина персонажа */
+  height: 90px;  /* базовая высота персонажа */
   bottom: 0;
-  left: 0px;
-  z-index: 5; /* поверх фона */
-}
-
-/* Маяк */
-#lighthouse {
-  position: absolute;
-  width: 380px;
-  height: 520px;
-  bottom: 0;
-  right: 0;
-  --lighthouse-scale: 1;
-  transform: scale(var(--lighthouse-scale));
-  transform-origin: bottom right;
+  left: 0px;        /* спавн в левом нижнем углу, как указано в SPAWN */
   z-index: 5;
 }
 
-/* Монета */
+/* Маяк: используем transform: scale для изменения размера, сохраняя пропорции */
+#lighthouse {
+  position: absolute;
+  width: 380px;   /* базовая ширина маяка */
+  height: 520px;   /* базовая высота маяка */
+  bottom: 0;
+  right: 0;       /* спавн в правом нижнем углу */
+  --lighthouse-scale: 1; /* изменяйте это значение для масштабирования (например, 1.5, 2, 3) */
+  transform: scale(var(--lighthouse-scale));
+  transform-origin: bottom right; /* точка масштабирования — правый нижний угол */
+  z-index: 5;
+}
+
+/* Монета: измените width для размера */
 .coin {
   position: absolute;
   width: 30px;
-  z-index: 6; /* над персонажем */
+  z-index: 4;
 }
 
-/* Волна */
+/* Волна: измените width для размера */
 .wave {
   position: absolute;
   width: 100px;
-  z-index: 6;
+  z-index: 4;
 }
 
 /* Контейнеры */
@@ -81,9 +81,36 @@ html, body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 6;
+  z-index: 4;
 }
 
+/* Кнопка Start Game */
+#startGameBtn {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 15px 30px;
+  font-size: 20px;
+  border: 2px solid #0ff;
+  border-radius: 12px;
+  background: #000;
+  color: #0ff;
+  cursor: pointer;
+  z-index: 5;
+  transition: .3s;
+}
+#startGameBtn:hover {
+  background: #0ff;
+  color: #000;
+}
+
+/* Скрытые кнопки */
+#mainMenuBtn, #leaderboardBtn {
+  display: none;
+}
+
+/* HUD */
 #hud {
   position: absolute;
   top: 0;
@@ -137,38 +164,24 @@ html, body {
   font-size: 18px;
 }
 
-/* Кнопка старт */
-#startGameBtn {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: 30px;
-  padding: 15px 30px;
-  font-size: 20px;
-  border: 2px solid #0ff;
-  border-radius: 12px;
-  background: #000;
-  color: #0ff;
-  cursor: pointer;
-  z-index: 7; /* поверх всего кроме HUD */
-  transition: .3s;
-}
-#startGameBtn:hover {
-  background: #0ff;
-  color: #000;
-}
-
-/* Скрытые кнопки меню */
-#mainMenuBtn, #leaderboardBtn {
-  display: none;
-}
-
-/* Mobile adjustments */
-@media (max-width: 768px) {
-  #character { width: 80px; height: 65px; }
-  #lighthouse { width: 280px; height: 420px; }
-  .coin { width: 20px; }
-  .wave { width: 70px; }
-  #coin-counter, #level-indicator, #hint { font-size: 14px; padding: 4px 8px; }
-  #startGameBtn { font-size: 16px; padding: 10px 20px; }
+/* Mobile media query for extra adjustments */
+@media (max-width: 768px) { /* Or use orientation: portrait */
+  #game-container {
+    /* Any mobile-specific CSS, e.g., smaller fonts if needed */
+    font-size: 14px; /* Example: reduce text size */
+  }
+  #character {
+    width: 80px; /* Scale down elements if transform not enough */
+    height: 65px;
+  }
+  #lighthouse {
+    width: 280px;
+    height: 420px;
+  }
+  .coin {
+    width: 20px;
+  }
+  .wave {
+    width: 70px;
+  }
 }

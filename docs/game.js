@@ -4,17 +4,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
   // Mobile scaling
-  const baseWidth = 1920;
-  const baseHeight = 1080;
-  const charWidth = 110;
-  const charHeight = 90;
-  const lhWidth = 380;
-  const lhHeight = 520;
-  const coinWidth = 30;
-  const waveWidth = 100;
-  const waveHeight = 100;
   if (isMobile) {
     const gameContainer = document.getElementById("game-container");
+    const baseWidth = 1920; // Assume base game width (adjust based on your design, e.g., from lighthouse/character sizes)
+    const baseHeight = 1080; // Assume base aspect
     function scaleGame() {
       const scale = Math.min(window.innerWidth / baseWidth, window.innerHeight / baseHeight);
       gameContainer.style.transform = `scale(${scale})`;
@@ -42,37 +35,36 @@ document.addEventListener("DOMContentLoaded", () => {
   async function connect() {
     try {
       if (isMobile) {
-        if (window.ethereum) {
-          // Если window.ethereum доступно, используем напрямую
-          await window.ensurePharos();
-          provider = new ethers.providers.Web3Provider(window.ethereum);
-          await provider.send("eth_requestAccounts", []);
-        } else {
-          // WalletConnect
-          if (!window.EthereumProvider) {
-            console.error('WalletConnect library failed to load');
-            alert('WalletConnect failed to load. Check your internet, reload the page, or open in a wallet app such as MetaMask/Trust Wallet.');
-            return;
-          }
-          const wcProvider = await window.EthereumProvider.init({
-            projectId: "f3a4411a5d6201d00fd86817d41b64e8",
-            chains: [parseInt(window.PHAROS.chainId, 16)],
-            rpcMap: {
-              [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
-            },
-            showQrModal: true, // Показ QR в браузере
-            metadata: {
-              name: "Beacon Run",
-              description: "Play Beacon Run and Win Tokens",
-              url: window.location.origin,
-              icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"]
-            }
-          });
-
-          // Убрал deep link для QR в браузере
-          await wcProvider.enable();
-          provider = new ethers.providers.Web3Provider(wcProvider);
+        if (!window.EthereumProvider) {
+          console.error("EthereumProvider not loaded");
+          alert("Install an EVM - compatible wallet like metamask !");
+          return false;
         }
+        const wcProvider = await window.EthereumProvider.init({
+          projectId: "f3a4411a5d6201d00fd86817d41b64e8",
+          chains: [parseInt(window.PHAROS.chainId, 16)],
+          rpcMap: {
+            [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
+          },
+          showQrModal: false, // Disable QR code in browser
+          metadata: {
+            name: "Beacon Run",
+            description: "Play Beacon Run and Win Tokens",
+            url: window.location.origin,
+            icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"]
+          }
+        });
+
+        wcProvider.on("display_uri", (uri) => {
+          // Redirect to MetaMask deep link or prompt user
+          const walletDeepLink = `metamask://wc?uri=${encodeURIComponent(uri)}`; // For MetaMask
+          // For Trust Wallet: `trust://wc?uri=${encodeURIComponent(uri)}`
+          // Or general: alert("Open in your wallet app and paste this URI: " + uri);
+          window.location.href = walletDeepLink;
+        });
+
+        await wcProvider.enable();
+        provider = new ethers.providers.Web3Provider(wcProvider);
       } else {
         if (!window.ethereum) { 
           alert("Install an EVM-compatible wallet like MetaMask, Trust Wallet, or any other that injects window.ethereum!"); 
@@ -93,11 +85,13 @@ document.addEventListener("DOMContentLoaded", () => {
       contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
       const p = await contract.players(playerAddress);
       if (!p.registered) {
+        alert("Please register on the main page first.");
         location.href = "index.html"; return false;
       }
       return true;
     } catch (e) {
       console.error(e);
+      alert("WalletConnect error: " + e.message);
       return false;
     }
   }
@@ -115,13 +109,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let coinSpawnMax = 2000;  // движение/прыжок
   let keys = {};
   let vy = 0;            // скорость по вертикали
-  const GRAVITY = 36;   // per second (0.6 * 60)
-  const JUMP_V = 1080;  // per second (18 * 60)
-  const MOVE_SPEED = 360; // per second (6 * 60)
-  const COIN_FALL_SPEED = 90; // per second (1.5 * 60)
-  const WAVE_INTERVAL_BASE = 1700; // ms
-  const WAVE_INTERVAL_EXTRA = 1400; // ms
-  const WAVE_FRAME_TIME = 0.02; // 20ms = 50fps base
+  const GRAVITY = 0.6;   // гравитация
+  const JUMP_V = 18;    // сила прыжка
   // === UI helpers ===
   function modal(html) {
     const wrap = document.createElement("div");
@@ -193,26 +182,22 @@ document.addEventListener("DOMContentLoaded", () => {
     },1000);
   }
   // === Волны (справа→налево) ===
-  let waveLastTime = 0;
   function spawnNextWave() {
     if (!gameActive) return;
     const wave = document.createElement("img");
     wave.src = "img/wave.png"; wave.className = "wave";
-    const maxBottom = Math.max(0, Math.floor(baseHeight / 2 - waveHeight));
+    const waveH = 100; // визуальная высота волны (примерно)
+    const maxBottom = Math.max(0, Math.floor(window.innerHeight / 2 - waveH));
     wave.style.bottom = (Math.random() * maxBottom) + "px";
     wave.style.right = "-140px";
     wavesContainer.appendChild(wave);
     let posRight = -140;
-    waveLastTime = performance.now();
-    function updateWave(time) {
-      if (!gameActive) { wave.remove(); return; }
-      const delta = (time - waveLastTime) / 1000;
-      waveLastTime = time;
-      posRight += waveSpeed * delta * 60; // normalize to 60fps
-      waveSpeed += waveAccel * 0.1 * delta * 60;
+    const iv = setInterval(()=>{
+      if (!gameActive) { clearInterval(iv); wave.remove(); return; }
+      posRight += waveSpeed; waveSpeed += waveAccel*0.1;
       wave.style.right = posRight + "px";
       const waveRect = r(wave);
-      const shrink = 0.30;
+      const shrink = 0.30; // обрезаем по 30% со всех сторон (это хитбокс волны - редактируйте shrink для изменения зоны поражения)
       const hitbox = {
         left: waveRect.left + waveRect.width*shrink,
         right: waveRect.right - waveRect.width*shrink,
@@ -220,32 +205,30 @@ document.addEventListener("DOMContentLoaded", () => {
         bottom: waveRect.bottom - waveRect.height*shrink
       };
       if (intersect(hitbox, r(character))) {
-        wave.remove();
+        clearInterval(iv); wave.remove();
         return gameOver(true);
       }
-      if (posRight > baseWidth + 140) {
-        wave.remove();
-        return;
+      // ушла за левый край
+      if (posRight > window.innerWidth + 140) {
+        clearInterval(iv); wave.remove();
       }
-      requestAnimationFrame(updateWave);
-    }
-    requestAnimationFrame(updateWave);
-    // следующая волна
+    }, 20);
+    // следующая волна через 1–2 сек (faster on higher levels)
     const base = 1700, extra = 1400 - currentLevel*200;
     waveSpawnTimer = setTimeout(spawnNextWave, base + Math.random()*extra);
   }
   // === Монеты ===
-  let coinLastTime = 0;
   function spawnNextCoin() {
     if (!gameActive || droppedCoins >= totalCoins) return;
     const coin = document.createElement("img");
     coin.src = "img/coin.png";
     coin.className = "coin";
-    const posX = parseFloat(character.style.left) || 0;
-    const lhLeft = baseWidth - lhWidth;
+    // безопасная зона: между персонажем и маяком
+    const charRect = r(character);
+    const lhRect = r(lighthouse);
     const padding = 50;
-    const leftMinSafe = posX + charWidth + padding;
-    const leftMaxSafe = lhLeft - padding;
+    const leftMinSafe = charRect.right + padding;
+    const leftMaxSafe = lhRect.left - padding;
     const left = Math.random() * (leftMaxSafe - leftMinSafe) + leftMinSafe;
     coin.style.left = left + "px";
     coin.style.top = "-50px";
@@ -253,33 +236,28 @@ document.addEventListener("DOMContentLoaded", () => {
     droppedCoins++;
     updateHUD();
     let posY = -50;
-    coinLastTime = performance.now();
-    function updateCoin(time) {
-      if (!gameActive) { coin.remove(); return; }
-      const delta = (time - coinLastTime) / 1000;
-      coinLastTime = time;
-      posY += COIN_FALL_SPEED * delta;
+    const iv = setInterval(() => {
+      if (!gameActive) { clearInterval(iv); coin.remove(); return; }
+      posY += 1.5;
       coin.style.top = posY + "px";
       if (intersect(r(coin), r(character))) {
         collectedCoins++;
         updateHUD();
-        floatPlus("+1", parseFloat(coin.style.left) + 20, parseFloat(coin.style.top) - 10);
+        floatPlus("+1", r(character).left + 20, r(character).top - 10);
+        clearInterval(iv);
         coin.remove();
-        return;
       }
-      if (posY > baseHeight) { coin.remove(); return; }
-      requestAnimationFrame(updateCoin);
-    }
-    requestAnimationFrame(updateCoin);
+      if (posY > window.innerHeight) { clearInterval(iv); coin.remove(); }
+    }, 20);
     const nextIn = coinSpawnMin + Math.random()*(coinSpawnMax - coinSpawnMin);
     coinSpawnTimer = setTimeout(spawnNextCoin, nextIn);
   }
-  // всплывашка +1 (logical coords)
+  // всплывашка +1
   function floatPlus(text, x, y) {
     const el = document.createElement("div");
     el.className = "float-plus"; el.textContent = text;
     el.style.left = x + "px"; el.style.top = y + "px";
-    document.getElementById("game-container").appendChild(el); // В контейнер для scale
+    document.body.appendChild(el);
     let t = 0;
     const iv = setInterval(()=>{
       t += 1; el.style.top = (y - t*1.5) + "px"; el.style.opacity = (1 - t/40).toString();
@@ -289,40 +267,38 @@ document.addEventListener("DOMContentLoaded", () => {
   // === Управление: arrows / WASD / ЦЫФВ + Space (jump) ===
   document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
   document.addEventListener("keyup",   e => keys[e.key.toLowerCase()] = false);
-  let lastTime = 0;
-  function moveLoop(time) {
-    if (!lastTime) lastTime = time;
-    const delta = (time - lastTime) / 1000; // seconds
-    lastTime = time;
+  function moveLoop() {
     if (gameActive) {
-      let posX = parseFloat(character.style.left) || 0;
-      let bottom = parseFloat(character.style.bottom) || 0;
+      const speed = 6;
+      const cr = r(character);
+      let left = cr.left, bottom = parseFloat(character.style.bottom) || 0;
       // horizontal
-      if (keys["arrowleft"] || keys["a"] || keys["ф"]) posX -= MOVE_SPEED * delta;
-      if (keys["arrowright"] || keys["d"] || keys["в"]) posX += MOVE_SPEED * delta;
-      posX = Math.max(0, Math.min(baseWidth - charWidth, posX));
-      character.style.left = posX + "px";
+      if (keys["arrowleft"] || keys["a"] || keys["ф"]) left -= speed;
+      if (keys["arrowright"] || keys["d"] || keys["в"]) left += speed;
+      character.style.left = Math.max(0, Math.min(window.innerWidth - cr.width, left)) + "px";
       // jump on space
       if ((keys[" "] || keys["arrowup"] || keys["w"] || keys["ц"]) && onGround()) vy = JUMP_V;
-      // gravity and jump
-      vy -= GRAVITY * delta;
-      let newBottom = bottom + vy * delta;
+      // gravity and jump (using bottom for consistency)
+      if (!onGround()) vy -= GRAVITY;
+      let newBottom = bottom + vy;
       if (newBottom < 0) {
         newBottom = 0;
-        vy = 0;
+        vy = 0;  // Reset velocity on landing (prevents accumulation)
       }
-      newBottom = Math.min(baseHeight - charHeight, newBottom);
+      newBottom = Math.min(window.innerHeight - cr.height, newBottom);  // Optional: Cap max height if needed
       character.style.bottom = newBottom + "px";
       const lhRect = r(lighthouse);
-      const paddingLeft = lhRect.width * 0.60;
-      const paddingRight = lhRect.width * 0.05;
-      const paddingTop = lhRect.height * 0.50;
-      const paddingBottom = lhRect.height * 0.05;
+      // Отдельные коэффициенты сжатия (padding) для каждой стороны (0 = нет сжатия, 0.5 = сжимаем на 50% с этой стороны)
+      // Уменьшай значение, чтобы расширить хитбокс в эту сторону или сделать ближе к краю
+      const paddingLeft = lhRect.width * 0.50;   // Сжатие слева (стандартное, не меняем)
+      const paddingRight = lhRect.width * 0.05;  // Меньше сжатие справа — хитбокс ближе к правому краю и растянут вправо
+      const paddingTop = lhRect.height * 0.50;   // Сжатие сверху (стандартное)
+      const paddingBottom = lhRect.height * 0.05; // Меньше сжатие снизу — хитбокс больше вниз ( растянут вниз)
       const lhHitbox = {
-        left: lhRect.left + paddingLeft,
-        right: lhRect.right - paddingRight,
-        top: lhRect.top + paddingTop,
-        bottom: lhRect.bottom - paddingBottom
+        left: lhRect.left + paddingLeft,         // Левый край: сдвигаем вправо на paddingLeft
+        right: lhRect.right - paddingRight,      // Правый край: отнимаем меньше, чтобы растянуть вправо
+        top: lhRect.top + paddingTop,            // Верхний край: стандарт
+        bottom: lhRect.bottom - paddingBottom    // Нижний край: отнимаем меньше, чтобы растянуть вниз (больше в низ)
       };
       if (intersect(r(character), lhHitbox)) {
         finishLevel(true);
@@ -330,7 +306,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     requestAnimationFrame(moveLoop);
   }
-  moveLoop(performance.now());
+  moveLoop();
   function onGround() {
     return parseFloat(character.style.bottom) <= 0;
   }
@@ -363,6 +339,7 @@ document.addEventListener("DOMContentLoaded", () => {
       };
     } catch (e) {
       console.error(e);
+      alert("Connect wallet first. If you have multiple wallet extensions, disable all except one.");
     }
   }
   // === START (pay ENTRY_FEE) ===
@@ -440,15 +417,13 @@ document.addEventListener("DOMContentLoaded", () => {
     startGameBtn.disabled = false;
     resetWorld();
   }
-  async function gameOver(byWave=true) {
+  function gameOver(byWave=true) {
     if (!gameActive) return;
     gameActive = false;
     clearTimeout(coinSpawnTimer); clearTimeout(waveSpawnTimer);
     // submit without reward
-    try { 
-      const tx = await contract.submitResult(collectedCoins, currentLevel, false, { gasLimit: 300000 });
-      await tx.wait();
-    } catch(e){ console.error(e); }
+    try { contract.submitResult(collectedCoins, currentLevel, false, { gasLimit: 300000 }); }
+    catch(e){ console.error(e); }
     const m = modal(`<div style="text-align:center">
       <div style="font-size:22px;margin-bottom:6px">You were hit by a wave!</div>
       <div>Coins collected: <b>${collectedCoins}/${totalCoins}</b></div>
@@ -475,7 +450,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Mobile touch controls
   let touchStartX = 0;
   let touchStartY = 0;
-  let touchThreshold = 30; // px for swipe detection (reduced for better response)
+  let touchThreshold = 50; // px for swipe detection
 
   if (isMobile) {
     const touchArea = document.createElement("div");
@@ -526,54 +501,58 @@ document.addEventListener("DOMContentLoaded", () => {
       keys["arrowright"] = false;
       keys[" "] = false;
     });
-  } else if ('ontouchstart' in window) {
-    // Desktop touch - buttons
-    const controls = document.createElement("div");
-    controls.style.position = "fixed";
-    controls.style.bottom = "0";
-    controls.style.left = "0";
-    controls.style.width = "100%";
-    controls.style.display = "flex";
-    controls.style.justifyContent = "space-between";
-    controls.style.padding = "10px";
-    controls.style.boxSizing = "border-box";
-    controls.style.zIndex = "1000";
-    const leftBtn = document.createElement("button");
-    leftBtn.textContent = "Left";
-    leftBtn.style.padding = "20px";
-    leftBtn.style.border = "2px solid #0ff";
-    leftBtn.style.background = "#000";
-    leftBtn.style.color = "#0ff";
-    leftBtn.style.borderRadius = "8px";
-    leftBtn.style.fontSize = "20px";
-    leftBtn.style.opacity = "0.7";
-    leftBtn.addEventListener("touchstart", () => keys["arrowleft"] = true);
-    leftBtn.addEventListener("touchend", () => keys["arrowleft"] = false);
-    const rightBtn = document.createElement("button");
-    rightBtn.textContent = "Right";
-    rightBtn.style.padding = "20px";
-    rightBtn.style.border = "2px solid #0ff";
-    rightBtn.style.background = "#000";
-    rightBtn.style.color = "#0ff";
-    rightBtn.style.borderRadius = "8px";
-    rightBtn.style.fontSize = "20px";
-    rightBtn.style.opacity = "0.7";
-    rightBtn.addEventListener("touchstart", () => keys["arrowright"] = true);
-    rightBtn.addEventListener("touchend", () => keys["arrowright"] = false);
-    const jumpBtn = document.createElement("button");
-    jumpBtn.textContent = "Jump";
-    jumpBtn.style.padding = "20px";
-    jumpBtn.style.border = "2px solid #0ff";
-    jumpBtn.style.background = "#000";
-    rightBtn.style.color = "#0ff";
-    jumpBtn.style.borderRadius = "8px";
-    jumpBtn.style.fontSize = "20px";
-    jumpBtn.style.opacity = "0.7";
-    jumpBtn.addEventListener("touchstart", () => keys[" "] = true);
-    jumpBtn.addEventListener("touchend", () => keys[" "] = false);
-    controls.appendChild(leftBtn);
-    controls.appendChild(rightBtn);
-    controls.appendChild(jumpBtn);
-    document.body.appendChild(controls);
+
+    // Hide desktop touch buttons if any (remove old code)
+  } else {
+    // Desktop controls unchanged
+    if ('ontouchstart' in window) {
+      const controls = document.createElement("div");
+      controls.style.position = "fixed";
+      controls.style.bottom = "0";
+      controls.style.left = "0";
+      controls.style.width = "100%";
+      controls.style.display = "flex";
+      controls.style.justifyContent = "space-between";
+      controls.style.padding = "10px";
+      controls.style.boxSizing = "border-box";
+      controls.style.zIndex = "1000";
+      const leftBtn = document.createElement("button");
+      leftBtn.textContent = "Left";
+      leftBtn.style.padding = "20px";
+      leftBtn.style.border = "2px solid #0ff";
+      leftBtn.style.background = "#000";
+      leftBtn.style.color = "#0ff";
+      leftBtn.style.borderRadius = "8px";
+      leftBtn.style.fontSize = "20px";
+      leftBtn.style.opacity = "0.7";
+      leftBtn.addEventListener("touchstart", () => keys["arrowleft"] = true);
+      leftBtn.addEventListener("touchend", () => keys["arrowleft"] = false);
+      const rightBtn = document.createElement("button");
+      rightBtn.textContent = "Right";
+      rightBtn.style.padding = "20px";
+      rightBtn.style.border = "2px solid #0ff";
+      rightBtn.style.background = "#000";
+      rightBtn.style.color = "#0ff";
+      rightBtn.style.borderRadius = "8px";
+      rightBtn.style.fontSize = "20px";
+      rightBtn.style.opacity = "0.7";
+      rightBtn.addEventListener("touchstart", () => keys["arrowright"] = true);
+      rightBtn.addEventListener("touchend", () => keys["arrowright"] = false);
+      const jumpBtn = document.createElement("button");
+      jumpBtn.textContent = "Jump";
+      jumpBtn.style.padding = "20px";
+      jumpBtn.style.border = "2px solid #0ff";
+      jumpBtn.style.background = "#000";
+      jumpBtn.style.color = "#0ff";
+      jumpBtn.style.borderRadius = "8px";
+      jumpBtn.style.fontSize = "20px";
+      jumpBtn.style.opacity = "0.7";
+      jumpBtn.addEventListener("touchstart", () => keys[" "] = true);
+      jumpBtn.addEventListener("touchend", () => keys[" "] = false);
+      controls.appendChild(leftBtn);
+      controls.appendChild(rightBtn);
+      controls.appendChild(jumpBtn);
+      document.body.appendChild(controls);
+    }
   }
 });
