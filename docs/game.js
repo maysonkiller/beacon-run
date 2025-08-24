@@ -1,4 +1,24 @@
+// game.js
 document.addEventListener("DOMContentLoaded", () => {
+  // Detect mobile
+  const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  // Mobile scaling
+  if (isMobile) {
+    const gameContainer = document.getElementById("game-container");
+    const baseWidth = 1920; // Adjust if needed
+    const baseHeight = 1080;
+    function scaleGame() {
+      const scale = Math.min(window.innerWidth / baseWidth, window.innerHeight / baseHeight);
+      gameContainer.style.transform = `scale(${scale})`;
+      gameContainer.style.transformOrigin = 'top left';
+      gameContainer.style.width = `${baseWidth}px`;
+      gameContainer.style.height = `${baseHeight}px`;
+    }
+    scaleGame();
+    window.addEventListener('resize', scaleGame);
+  }
+
   // === DOM ===
   const startGameBtn = document.getElementById("startGameBtn");
   const mainMenuBtn = document.getElementById("mainMenuBtn");
@@ -13,7 +33,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // === Ethers ===
   let provider, signer, contract, playerAddress;
   async function connect() {
-    let isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     try {
       if (isMobile) {
         if (!window.EthereumProvider) {
@@ -319,21 +338,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   // === START (pay ENTRY_FEE) ===
   startGameBtn.addEventListener("click", async () => {
-  startGameBtn.disabled = true;
-
-  const ok = await connect();
-  if (!ok) {
+    startGameBtn.disabled = true;
+    showPaymentModal(() => {
+      startLevel();
+    });
     startGameBtn.disabled = false;
-    return;
-  }
-
-  showPaymentModal(() => {
-    startLevel();
   });
-
-  startGameBtn.disabled = false;
-});
-
   // === Finish / GameOver ===
   async function finishLevel(reached) {
     if (!gameActive) return;
@@ -401,17 +411,13 @@ document.addEventListener("DOMContentLoaded", () => {
     startGameBtn.disabled = false;
     resetWorld();
   }
-  async function gameOver(byWave=true) {
+  function gameOver(byWave=true) {
     if (!gameActive) return;
     gameActive = false;
     clearTimeout(coinSpawnTimer); clearTimeout(waveSpawnTimer);
     // submit without reward
-    try {
-      const tx = await contract.submitResult(collectedCoins, currentLevel, false, { gasLimit: 300000 });
-      await tx.wait();
-    } catch(e){ 
-      console.error(e); 
-    }
+    try { contract.submitResult(collectedCoins, currentLevel, false, { gasLimit: 300000 }); }
+    catch(e){ console.error(e); }
     const m = modal(`<div style="text-align:center">
       <div style="font-size:22px;margin-bottom:6px">You were hit by a wave!</div>
       <div>Coins collected: <b>${collectedCoins}/${totalCoins}</b></div>
@@ -436,53 +442,111 @@ document.addEventListener("DOMContentLoaded", () => {
     window.location.href = "leaderboard.html";
   });
   // Mobile touch controls
-  if ('ontouchstart' in window) {
-    const controls = document.createElement("div");
-    controls.style.position = "fixed";
-    controls.style.bottom = "0";
-    controls.style.left = "0";
-    controls.style.width = "100%";
-    controls.style.display = "flex";
-    controls.style.justifyContent = "space-between";
-    controls.style.padding = "10px";
-    controls.style.boxSizing = "border-box";
-    controls.style.zIndex = "1000";
-    const leftBtn = document.createElement("button");
-    leftBtn.textContent = "Left";
-    leftBtn.style.padding = "20px";
-    leftBtn.style.border = "2px solid #0ff";
-    leftBtn.style.background = "#000";
-    leftBtn.style.color = "#0ff";
-    leftBtn.style.borderRadius = "8px";
-    leftBtn.style.fontSize = "20px";
-    leftBtn.style.opacity = "0.7";
-    leftBtn.addEventListener("touchstart", () => keys["arrowleft"] = true);
-    leftBtn.addEventListener("touchend", () => keys["arrowleft"] = false);
-    const rightBtn = document.createElement("button");
-    rightBtn.textContent = "Right";
-    rightBtn.style.padding = "20px";
-    rightBtn.style.border = "2px solid #0ff";
-    rightBtn.style.background = "#000";
-    rightBtn.style.color = "#0ff";
-    rightBtn.style.borderRadius = "8px";
-    rightBtn.style.fontSize = "20px";
-    rightBtn.style.opacity = "0.7";
-    rightBtn.addEventListener("touchstart", () => keys["arrowright"] = true);
-    rightBtn.addEventListener("touchend", () => keys["arrowright"] = false);
-    const jumpBtn = document.createElement("button");
-    jumpBtn.textContent = "Jump";
-    jumpBtn.style.padding = "20px";
-    jumpBtn.style.border = "2px solid #0ff";
-    jumpBtn.style.background = "#000";
-    jumpBtn.style.color = "#0ff";
-    jumpBtn.style.borderRadius = "8px";
-    jumpBtn.style.fontSize = "20px";
-    jumpBtn.style.opacity = "0.7";
-    jumpBtn.addEventListener("touchstart", () => keys[" "] = true);
-    jumpBtn.addEventListener("touchend", () => keys[" "] = false);
-    controls.appendChild(leftBtn);
-    controls.appendChild(rightBtn);
-    controls.appendChild(jumpBtn);
-    document.body.appendChild(controls);
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchThreshold = 50; // px for swipe detection
+
+  if (isMobile) {
+    const touchArea = document.createElement("div");
+    touchArea.style.position = "absolute";
+    touchArea.style.left = "0";
+    touchArea.style.bottom = "0";
+    touchArea.style.width = "50%";
+    touchArea.style.height = "100%";
+    touchArea.style.opacity = "0"; // Invisible
+    touchArea.style.zIndex = "1000";
+    document.body.appendChild(touchArea);
+
+    touchArea.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    });
+
+    touchArea.addEventListener("touchmove", (e) => {
+      e.preventDefault();
+      if (!gameActive) return;
+      const touchX = e.touches[0].clientX;
+      const touchY = e.touches[0].clientY;
+      const deltaX = touchX - touchStartX;
+      const deltaY = touchY - touchStartY;
+
+      // Reset keys
+      keys["arrowleft"] = false;
+      keys["arrowright"] = false;
+      keys[" "] = false;
+
+      // Horizontal movement
+      if (Math.abs(deltaX) > touchThreshold) {
+        if (deltaX < 0) keys["arrowleft"] = true;
+        else keys["arrowright"] = true;
+      }
+
+      // Jump (swipe up: deltaY negative)
+      if (deltaY < -touchThreshold && onGround()) {
+        keys[" "] = true;
+      }
+    });
+
+    touchArea.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      // Reset keys on end
+      keys["arrowleft"] = false;
+      keys["arrowright"] = false;
+      keys[" "] = false;
+    });
+
+    // Hide desktop touch buttons if any (remove old code)
+  } else {
+    // Desktop controls unchanged
+    if ('ontouchstart' in window) {
+      const controls = document.createElement("div");
+      controls.style.position = "fixed";
+      controls.style.bottom = "0";
+      controls.style.left = "0";
+      controls.style.width = "100%";
+      controls.style.display = "flex";
+      controls.style.justifyContent = "space-between";
+      controls.style.padding = "10px";
+      controls.style.boxSizing = "border-box";
+      controls.style.zIndex = "1000";
+      const leftBtn = document.createElement("button");
+      leftBtn.textContent = "Left";
+      leftBtn.style.padding = "20px";
+      leftBtn.style.border = "2px solid #0ff";
+      leftBtn.style.background = "#000";
+      leftBtn.style.color = "#0ff";
+      leftBtn.style.borderRadius = "8px";
+      leftBtn.style.fontSize = "20px";
+      leftBtn.style.opacity = "0.7";
+      leftBtn.addEventListener("touchstart", () => keys["arrowleft"] = true);
+      leftBtn.addEventListener("touchend", () => keys["arrowleft"] = false);
+      const rightBtn = document.createElement("button");
+      rightBtn.textContent = "Right";
+      rightBtn.style.padding = "20px";
+      rightBtn.style.border = "2px solid #0ff";
+      rightBtn.style.background = "#000";
+      rightBtn.style.color = "#0ff";
+      rightBtn.style.borderRadius = "8px";
+      rightBtn.style.fontSize = "20px";
+      rightBtn.style.opacity = "0.7";
+      rightBtn.addEventListener("touchstart", () => keys["arrowright"] = true);
+      rightBtn.addEventListener("touchend", () => keys["arrowright"] = false);
+      const jumpBtn = document.createElement("button");
+      jumpBtn.textContent = "Jump";
+      jumpBtn.style.padding = "20px";
+      jumpBtn.style.border = "2px solid #0ff";
+      jumpBtn.style.background = "#000";
+      jumpBtn.style.color = "#0ff";
+      jumpBtn.style.borderRadius = "8px";
+      jumpBtn.style.fontSize = "20px";
+      jumpBtn.style.opacity = "0.7";
+      jumpBtn.addEventListener("touchstart", () => keys[" "] = true);
+      jumpBtn.addEventListener("touchend", () => keys[" "] = false);
+      controls.appendChild(leftBtn);
+      controls.appendChild(rightBtn);
+      controls.appendChild(jumpBtn);
+      document.body.appendChild(controls);
+    }
   }
 });

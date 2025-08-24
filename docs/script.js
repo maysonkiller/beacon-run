@@ -1,10 +1,18 @@
+// script.js
 const bgMusic = document.getElementById("bgMusic");
 const musicBtn = document.getElementById("musicBtn");
 const connectBtn = document.getElementById("connectBtn");
 const startBtn = document.getElementById("startBtn");
 const leaderBtn = document.getElementById("leaderBtn");
 const walletStatus = document.getElementById("walletStatus");
+const mobileHint = document.getElementById("mobileHint"); // New
 let provider, signer, contract, userAddress;
+
+// Detect mobile early
+const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+if (isMobile && mobileHint) {
+  mobileHint.style.display = 'block';
+}
 
 // ===== Modal for nickname =====
 function nicknameModal(onSubmit) {
@@ -84,7 +92,6 @@ leaderBtn.addEventListener("click", () => {
 
 // ===== Подключение кошелька + регистрация =====
 async function connect() {
-  let isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   try {
     if (isMobile) {
       if (!window.EthereumProvider) {
