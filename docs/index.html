@@ -11,30 +11,37 @@
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/client@1.8.0/dist/walletconnect.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/qrcode-modal@1.8.0/dist/index.min.js"></script>
   <script src="network.js"></script>
   <script src="contract.js"></script>
 </head>
 <body>
+  <!-- Лого слева (кликабельно) -->
   <div class="logo" onclick="window.open('https://testnet.pharosnetwork.xyz/', '_blank')">
     <img src="img/pharos-logo.png" alt="Pharos Logo">
   </div>
+
+  <!-- Кнопки справа сверху -->
   <div class="top-buttons">
     <button id="connectBtn"> Connect Wallet</button>
     <button id="leaderBtn"> Leaderboard</button>
     <button id="musicBtn" title="Click to enable music"> Music Off</button>
   </div>
+
+  <!-- Заголовок -->
   <div class="title">
     <h1>Play Beacon Run</h1>
     <h2>Win Tokens</h2>
   </div>
+
+  <!-- Видео-рамка -->
   <div class="video-frame">
     <video id="introVideo" autoplay loop muted playsinline preload="auto">
       <source src="video/intro.mp4" type="video/mp4">
       Your browser does not support the video tag.
     </video>
   </div>
+
+  <!-- Start + соцсети -->
   <div class="start-container">
     <button id="startBtn" disabled> Start Game</button>
     <div id="walletStatus" style="margin-top:10px; color:#0ff; font-size:14px;"></div>
@@ -48,13 +55,18 @@
       </a>
     </div>
   </div>
+
+  <!-- Музыка -->
   <audio id="bgMusic" src="music/music.mp3" loop></audio>
   <script src="script.js"></script>
   <script>
+    // Force video play on mobile touch
     const introVideo = document.getElementById("introVideo");
     document.addEventListener('touchstart', () => {
       introVideo.play().catch(() => {});
     }, { once: true });
+
+    // Fullscreen on click (mobile only)
     const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     if (isMobile) {
       document.addEventListener('click', () => {
