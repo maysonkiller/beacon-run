@@ -5,7 +5,7 @@ const connectBtn = document.getElementById("connectBtn");
 const startBtn = document.getElementById("startBtn");
 const leaderBtn = document.getElementById("leaderBtn");
 const walletStatus = document.getElementById("walletStatus");
-const mobileHint = document.getElementById("mobileHint"); // New
+const mobileHint = document.getElementById("mobileHint");
 let provider, signer, contract, userAddress;
 
 // Detect mobile early
@@ -28,13 +28,18 @@ if (isMobile) {
 function nicknameModal(onSubmit) {
   const wrap = document.createElement("div");
   Object.assign(wrap.style, { 
-    position: "fixed", inset: "0", display: "grid", placeItems: "center", 
-    background: "rgba(0,0,0,.6)", zIndex: "9999"
+    position: "fixed", 
+    inset: "0", 
+    display: "grid", 
+    placeItems: "center", 
+    background: "rgba(0,0,0,.6)", 
+    zIndex: "9999",
+    padding: isMobile ? "10px" : "20px" // Smaller padding on mobile
   });
   wrap.innerHTML = `
     <div style="
-      min-width: 320px;
-      max-width: 90vw;
+      min-width: ${isMobile ? '280px' : '320px'};
+      max-width: ${isMobile ? '95vw' : '90vw'};
       background: rgba(10,12,25,.95);
       border: 2px solid #0ff;
       border-radius: 16px;
@@ -87,7 +92,7 @@ function nicknameModal(onSubmit) {
 // ===== Музыка =====
 musicBtn.addEventListener("click", () => {
   if (bgMusic.paused) {
-    bgMusic.play().catch(()=>{});
+    bgMusic.play().catch(() => {});
     musicBtn.textContent = " Music On";
   } else {
     bgMusic.pause();
@@ -106,30 +111,36 @@ async function connect() {
     if (isMobile) {
       if (!window.EthereumProvider) {
         console.error("EthereumProvider not loaded");
-        alert("Install an EVM - compatible wallet like metamask !");
+        alert("Please install an EVM-compatible wallet app (e.g., MetaMask, Trust Wallet)!");
         return;
       }
       const wcProvider = await window.EthereumProvider.init({
         projectId: "f3a4411a5d6201d00fd86817d41b64e8",
         chains: [parseInt(window.PHAROS.chainId, 16)],
+        optionalChains: [parseInt(window.PHAROS.chainId, 16)],
         rpcMap: {
           [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
         },
-        showQrModal: false, // Disable QR code in browser
+        showQrModal: false, // Disable QR code
         metadata: {
           name: "Beacon Run",
           description: "Play Beacon Run and Win Tokens",
           url: window.location.origin,
-          icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"] // Replace with actual icon if needed
+          icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"]
         }
       });
 
+      // Attempt direct connection to wallet apps
       wcProvider.on("display_uri", (uri) => {
-        // Redirect to MetaMask deep link or prompt user
-        const walletDeepLink = `metamask://wc?uri=${encodeURIComponent(uri)}`; // For MetaMask
-        // For Trust Wallet: `trust://wc?uri=${encodeURIComponent(uri)}`
-        // Or general: alert("Open in your wallet app and paste this URI: " + uri);
-        window.location.href = walletDeepLink;
+        // Try MetaMask
+        const metamaskLink = `metamask://wc?uri=${encodeURIComponent(uri)}`;
+        const trustWalletLink = `trust://wc?uri=${encodeURIComponent(uri)}`;
+        // Try opening MetaMask first, fallback to Trust Wallet
+        window.location.href = metamaskLink;
+        setTimeout(() => {
+          // If MetaMask doesn't open, try Trust Wallet
+          window.location.href = trustWalletLink;
+        }, 1000);
       });
 
       await wcProvider.enable();
@@ -177,7 +188,7 @@ async function connect() {
 }
 
 function shortAddress(addr) {
-  return addr.slice(0,6) + "..." + addr.slice(-4);
+  return addr.slice(0, 6) + "..." + addr.slice(-4);
 }
 
 connectBtn.addEventListener("click", connect);

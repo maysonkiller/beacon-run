@@ -1,34 +1,21 @@
 html, body {
   margin: 0;
   padding: 0;
-  overflow: hidden; /* убираем скролл */
+  overflow: hidden;
   width: 100vw;
   height: 100vh;
 }
 
-/* Добавьте для landscape */
-@media (orientation: portrait) {
-  body {
-    transform: rotate(90deg);
-    transform-origin: center;
-    width: 100vh;
-    height: 100vw;
-    overflow: hidden;
-  }
-}
-
-/* Игровой контейнер */
 #game-container {
   position: relative;
-  width: 100vw;
-  height: 100vh;
+  width: 1920px; /* Base width for scaling */
+  height: 1080px; /* Base height for scaling */
   overflow: hidden;
   background: #000;
   color: #0ff;
   font-family: 'Space Grotesk', sans-serif;
 }
 
-/* Фоновое видео */
 #game-container video {
   position: absolute;
   inset: 0;
@@ -38,45 +25,36 @@ html, body {
   z-index: 0;
 }
 
-/* ==== Размеры элементов (изменяйте размеры здесь) ==== */
-/* Персонаж: измените width и height для базового размера */
 #character {
   position: absolute;
-  width: 110px;   /* базовая ширина персонажа */
-  height: 90px;  /* базовая высота персонажа */
+  width: 5.73vw; /* 110px / 1920px */
+  height: 8.33vh; /* 90px / 1080px */
   bottom: 0;
-  left: 0px;        /* спавн в левом нижнем углу, как указано в SPAWN */
+  left: 0;
   z-index: 5;
 }
 
-/* Маяк: используем transform: scale для изменения размера, сохраняя пропорции */
 #lighthouse {
   position: absolute;
-  width: 380px;   /* базовая ширина маяка */
-  height: 520px;   /* базовая высота маяка */
+  width: 19.79vw; /* 380px / 1920px */
+  height: 48.15vh; /* 520px / 1080px */
   bottom: 0;
-  right: 0;       /* спавн в правом нижнем углу */
-  --lighthouse-scale: 1; /* изменяйте это значение для масштабирования (например, 1.5, 2, 3) */
-  transform: scale(var(--lighthouse-scale));
-  transform-origin: bottom right; /* точка масштабирования — правый нижний угол */
+  right: 0;
   z-index: 5;
 }
 
-/* Монета: измените width для размера */
 .coin {
   position: absolute;
-  width: 30px;
+  width: 1.56vw; /* 30px / 1920px */
   z-index: 4;
 }
 
-/* Волна: измените width для размера */
 .wave {
   position: absolute;
-  width: 100px;
+  width: 5.21vw; /* 100px / 1920px */
   z-index: 4;
 }
 
-/* Контейнеры */
 #coins-container, #waves-container {
   position: absolute;
   inset: 0;
@@ -84,10 +62,9 @@ html, body {
   z-index: 4;
 }
 
-/* Кнопка Start Game */
-#startGameBtn {
+#startGameBtn, #fullscreenBtn {
   position: absolute;
-  bottom: 30px;
+  bottom: 2.78vh; /* 30px / 1080px */
   left: 50%;
   transform: translateX(-50%);
   padding: 15px 30px;
@@ -100,29 +77,31 @@ html, body {
   z-index: 5;
   transition: .3s;
 }
-#startGameBtn:hover {
+
+#fullscreenBtn {
+  bottom: 7vh; /* Position above start button */
+}
+
+#startGameBtn:hover, #fullscreenBtn:hover {
   background: #0ff;
   color: #000;
 }
 
-/* Скрытые кнопки */
 #mainMenuBtn, #leaderboardBtn {
   display: none;
 }
 
-/* HUD */
 #hud {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
-  height: 50px;
+  height: 4.63vh; /* 50px / 1080px */
   background: rgba(0, 0, 0, 0.85);
   z-index: 1000;
   box-sizing: border-box;
 }
 
-/* Левый текст */
 #hud-left {
   position: absolute;
   left: 20px;
@@ -132,7 +111,6 @@ html, body {
   text-align: left;
 }
 
-/* Центр */
 #hud-center {
   position: absolute;
   left: 50%;
@@ -143,7 +121,6 @@ html, body {
   text-align: center;
 }
 
-/* Правый текст */
 #hud-right {
   position: absolute;
   right: 20px;
@@ -154,7 +131,6 @@ html, body {
   text-align: right;
 }
 
-/* +1 всплывашка */
 .float-plus {
   position: absolute;
   font-weight: 700;
@@ -162,26 +138,4 @@ html, body {
   z-index: 9999;
   color: #0ff;
   font-size: 18px;
-}
-
-/* Mobile media query for extra adjustments */
-@media (max-width: 768px) { /* Or use orientation: portrait */
-  #game-container {
-    /* Any mobile-specific CSS, e.g., smaller fonts if needed */
-    font-size: 14px; /* Example: reduce text size */
-  }
-  #character {
-    width: 80px; /* Scale down elements if transform not enough */
-    height: 65px;
-  }
-  #lighthouse {
-    width: 280px;
-    height: 420px;
-  }
-  .coin {
-    width: 20px;
-  }
-  .wave {
-    width: 70px;
-  }
 }

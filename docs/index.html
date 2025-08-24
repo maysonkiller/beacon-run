@@ -15,7 +15,6 @@
   <script src="contract.js"></script>
 </head>
 <body>
-
   <!-- Лого слева (кликабельно) -->
   <div class="logo" onclick="window.open('https://testnet.pharosnetwork.xyz/', '_blank')">
     <img src="img/pharos-logo.png" alt="Pharos Logo">
@@ -67,17 +66,13 @@
       introVideo.play().catch(() => {});
     }, { once: true });
 
-    // Full screen on click (user gesture)
-    document.addEventListener('click', () => {
-      document.documentElement.requestFullscreen().catch(() => {});
-    }, { once: true });
-
-    // Orientation change to landscape
-    window.addEventListener('orientationchange', () => {
-      if (window.orientation === 0) { // Portrait
-        alert("Please rotate to landscape for better experience");
-      }
-    });
+    // Fullscreen on click (mobile only)
+    const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+      document.addEventListener('click', () => {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }, { once: true });
+    }
   </script>
 </body>
 </html>

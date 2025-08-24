@@ -24,6 +24,7 @@
     <button id="startGameBtn">Start Game</button>
     <button id="mainMenuBtn">Main Menu</button>
     <button id="leaderboardBtn">Leaderboard</button>
+    <button id="fullscreenBtn" style="display:none;">Toggle Fullscreen</button>
 
     <!-- HUD -->
     <div id="hud">
@@ -51,6 +52,8 @@
       script.onload = () => console.log('WalletConnect loaded');
       script.onerror = () => alert('Failed to load WalletConnect. Check your connection or try in wallet app.');
       document.head.appendChild(script);
+      // Show fullscreen toggle button
+      document.getElementById('fullscreenBtn').style.display = 'block';
     }
 
     // Force video play on mobile touch
@@ -59,17 +62,16 @@
       bgVideo.play().catch(() => {});
     }, { once: true });
 
-    // Full screen on game start or click
-    document.addEventListener('click', () => {
-      document.documentElement.requestFullscreen().catch(() => {});
-    }, { once: true });
-
-    // Orientation change to landscape
-    window.addEventListener('orientationchange', () => {
-      if (window.orientation === 0) { // Portrait
-        alert("Please rotate to landscape for better experience");
-      }
-    });
+    // Fullscreen toggle for mobile
+    if (isMobile) {
+      document.getElementById('fullscreenBtn').addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      });
+    }
   </script>
 </body>
 </html>
