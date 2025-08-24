@@ -27,40 +27,42 @@ html, body {
   z-index: 0;
 }
 
-/* ==== Размеры элементов (изменяйте размеры здесь) ==== */
-/* Персонаж: измените width и height для базового размера */
+/* ==== Размеры элементов ==== */
+/* Персонаж */
 #character {
   position: absolute;
-  width: 110px;   /* базовая ширина персонажа */
-  height: 90px;  /* базовая высота персонажа */
+  width: 110px;
+  height: 90px;
   bottom: 0;
-  left: 0px;        /* спавн в левом нижнем углу, как указано в SPAWN */
+  left: 0px;
+  z-index: 5; /* поверх фона */
 }
 
-/* Маяк: используем transform: scale для изменения размера, сохраняя пропорции */
+/* Маяк */
 #lighthouse {
   position: absolute;
-  width: 380px;   /* базовая ширина маяка */
-  height: 520px;   /* базовая высота маяка */
+  width: 380px;
+  height: 520px;
   bottom: 0;
-  right: 0;       /* спавн в правом нижнем углу */
-  --lighthouse-scale: 1; /* изменяйте это значение для масштабирования (например, 1.5, 2, 3) */
+  right: 0;
+  --lighthouse-scale: 1;
   transform: scale(var(--lighthouse-scale));
-  transform-origin: bottom right; /* точка масштабирования — правый нижний угол */
+  transform-origin: bottom right;
+  z-index: 5;
 }
 
-/* Монета: измените width для размера */
+/* Монета */
 .coin {
   position: absolute;
   width: 30px;
-  z-index: 4;
+  z-index: 6; /* над персонажем */
 }
 
-/* Волна: измените width для размера */
+/* Волна */
 .wave {
   position: absolute;
   width: 100px;
-  z-index: 4;
+  z-index: 6;
 }
 
 /* Контейнеры */
@@ -68,40 +70,10 @@ html, body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 4;
+  z-index: 6;
 }
 
-/* Общий стиль для кнопок */
-#startGameBtn {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 15px 30px;
-  font-size: 20px;
-  border: 2px solid #0ff;
-  border-radius: 12px;
-  background: #000;
-  color: #0ff;
-  cursor: pointer;
-  z-index: 5;
-  transition: .3s;
-}
-
-#startGameBtn:hover {
-  background: #0ff;
-  color: #000;
-}
-
-/* Позиции кнопок */
-#startGameBtn {
-  bottom: 30px;
-}
-
-#mainMenuBtn, #leaderboardBtn {
-  display: none;
-}
-
-/* Верхняя чёрная панель */
+/* HUD */
 #hud {
   position: absolute;
   top: 0;
@@ -115,27 +87,14 @@ html, body {
   padding: 0 20px;
   color: #0ff;
   font-family: 'Space Grotesk', sans-serif;
-  z-index: 1000;
+  z-index: 1000; /* гарантированно поверх всего */
   box-sizing: border-box;
 }
 
-/* Левая часть HUD */
-#hud-left {
-  font-size: 18px;
-}
-
-/* Центр HUD */
-#hud-center {
-  font-size: 18px;
-  font-weight: bold;
-}
-
-/* Правая часть HUD */
-#hud-right {
-  font-size: 14px;
-  opacity: 0.9;
-  text-align: right;
-}
+/* HUD части */
+#hud-left { font-size: 18px; }
+#hud-center { font-size: 18px; font-weight: bold; }
+#hud-right { font-size: 14px; opacity: 0.9; text-align: right; }
 
 /* +1 всплывашка */
 .float-plus {
@@ -147,28 +106,38 @@ html, body {
   font-size: 18px;
 }
 
-/* Mobile media query for extra adjustments */
+/* Кнопка старт */
+#startGameBtn {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 30px;
+  padding: 15px 30px;
+  font-size: 20px;
+  border: 2px solid #0ff;
+  border-radius: 12px;
+  background: #000;
+  color: #0ff;
+  cursor: pointer;
+  z-index: 7; /* поверх всего кроме HUD */
+  transition: .3s;
+}
+#startGameBtn:hover {
+  background: #0ff;
+  color: #000;
+}
+
+/* Скрытые кнопки меню */
+#mainMenuBtn, #leaderboardBtn {
+  display: none;
+}
+
+/* Mobile adjustments */
 @media (max-width: 768px) {
-  #character {
-    width: 80px;
-    height: 65px;
-  }
-  #lighthouse {
-    width: 280px;
-    height: 420px;
-  }
-  .coin {
-    width: 20px;
-  }
-  .wave {
-    width: 70px;
-  }
-  #coin-counter, #level-indicator, #hint {
-    font-size: 14px;
-    padding: 4px 8px;
-  }
-  #startGameBtn {
-    font-size: 16px;
-    padding: 10px 20px;
-  }
+  #character { width: 80px; height: 65px; }
+  #lighthouse { width: 280px; height: 420px; }
+  .coin { width: 20px; }
+  .wave { width: 70px; }
+  #coin-counter, #level-indicator, #hint { font-size: 14px; padding: 4px 8px; }
+  #startGameBtn { font-size: 16px; padding: 10px 20px; }
 }

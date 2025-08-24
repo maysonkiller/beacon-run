@@ -22,17 +22,22 @@
     <button id="startGameBtn">Start Game</button>
     <button id="mainMenuBtn">Main Menu</button>
     <button id="leaderboardBtn">Leaderboard</button>
-<div id="hud">
-  <div id="hud-left">
-    <span id="coin-counter">Coins: 0 / 10</span>
+
+    <!-- HUD -->
+    <div id="hud">
+      <div id="hud-left">
+        <span id="coin-counter">Coins: 0 / 10</span>
+      </div>
+      <div id="hud-center">
+        <span id="level-indicator">Level: 1</span>
+      </div>
+      <div id="hud-right">
+        <span id="hint">Goal: Collect all coins and reach the lighthouse!</span>
+      </div>
+    </div>
+    <!-- /HUD -->
   </div>
-  <div id="hud-center">
-    <span id="level-indicator">Level: 1</span>
-  </div>
-  <div id="hud-right">
-    <span id="hint">Goal: Collect all coins and reach the lighthouse!</span>
-  </div>
-  </div>
+
   <script src="game.js"></script>
 </body>
 </html>
