@@ -5,7 +5,7 @@ const connectBtn = document.getElementById("connectBtn");
 const startBtn = document.getElementById("startBtn");
 const leaderBtn = document.getElementById("leaderBtn");
 const walletStatus = document.getElementById("walletStatus");
-const mobileHint = document.getElementById("mobileHint");
+const mobileHint = document.getElementById("mobileHint"); // New
 let provider, signer, contract, userAddress;
 
 // Detect mobile early
@@ -90,57 +90,50 @@ leaderBtn.addEventListener("click", () => {
   window.location.href = "leaderboard.html";
 });
 
-// ===== Общий хелпер WC v1 deep link =====
-function openWalletDeepLink(uri) {
-  // Универсальная ссылка MetaMask (лучше работает на iOS/Android)
-  const universal = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
-  // В качестве запасного варианта можно попробовать схемы:
-  // const mm = `metamask://wc?uri=${encodeURIComponent(uri)}`;
-  // const trust = `trust://wc?uri=${encodeURIComponent(uri)}`;
-  window.location.href = universal;
-}
-
 // ===== Подключение кошелька + регистрация =====
 async function connect() {
   try {
-    const chainIdDec = parseInt(window.PHAROS.chainId, 16);
-
     if (isMobile) {
-      if (typeof WalletConnectProvider === 'undefined') {
-        throw new Error("WalletConnect v1 library not loaded.");
+      if (!window.EthereumProvider) {
+        throw new Error("EthereumProvider library not loaded. Please check your network or try a different browser.");
       }
-      const wcProvider = new WalletConnectProvider({
-        rpc: { [chainIdDec]: window.PHAROS.rpcUrls[0] },
-        chainId: chainIdDec,
-        qrcode: false // на мобильных работаем через deep link
+      const wcProvider = await window.EthereumProvider.init({
+        projectId: "f3a4411a5d6201d00fd86817d41b64e8",
+        chains: [parseInt(window.PHAROS.chainId, 16)],
+        rpcMap: {
+          [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
+        },
+        showQrModal: false, // Disable built-in modal for mobile
+        metadata: {
+          name: "Beacon Run",
+          description: "Play Beacon Run and Win Tokens",
+          url: window.location.origin,
+          icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"] // Replace with actual icon if needed
+        }
       });
 
-      // Поймаем URI для deep link
-      if (wcProvider.connector && wcProvider.connector.on) {
-        wcProvider.connector.on("display_uri", (err, payload) => {
-          if (err) return console.error(err);
-          const uri = (payload && payload.params && payload.params[0]) || payload;
-          if (uri) openWalletDeepLink(uri);
-        });
-      }
+      wcProvider.on("display_uri", (uri) => {
+        // Redirect to MetaMask deep link or prompt user
+        const walletDeepLink = `metamask://wc?uri=${encodeURIComponent(uri)}`; // For MetaMask
+        // For Trust Wallet: `trust://wc?uri=${encodeURIComponent(uri)}`
+        // Or general: alert("Open in your wallet app and paste this URI: " + uri);
+        window.location.href = walletDeepLink;
+      });
 
       await wcProvider.enable();
       provider = new ethers.providers.Web3Provider(wcProvider);
     } else {
-      // Десктоп: любой EVM-кошелёк через window.ethereum
-      if (!window.ethereum) {
-        alert("Install an EVM-compatible wallet (MetaMask / OKX / Coinbase / Brave / etc).");
-        return;
+      if (!window.ethereum) { 
+        alert("Install an EVM-compatible wallet like MetaMask!");
+        return; 
       }
       await window.ensurePharos();
       provider = new ethers.providers.Web3Provider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
     }
-
     signer = provider.getSigner();
     userAddress = await signer.getAddress();
     contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
-
     const p = await contract.players(userAddress);
     if (!p.registered) {
       nicknameModal(async (nickname) => {
@@ -152,8 +145,8 @@ async function connect() {
           startBtn.disabled = false;
         } catch (regError) {
           console.error(regError);
-          if (regError.message?.includes("already registered") || 
-              regError.data?.message?.includes("already registered")) {
+          if (regError.message.includes("already registered") || 
+              (regError.data && regError.data.message.includes("already registered"))) {
             alert("You are already registered. Welcome back!");
           } else {
             alert("Registration failed.");
