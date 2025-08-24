@@ -8,8 +8,8 @@ html, body {
 
 #game-container {
   position: relative;
-  width: 1920px; /* Base width for scaling */
-  height: 1080px; /* Base height for scaling */
+  width: 1920px;
+  height: 1080px;
   overflow: hidden;
   background: #000;
   color: #0ff;
@@ -27,8 +27,8 @@ html, body {
 
 #character {
   position: absolute;
-  width: 5.73vw; /* 110px / 1920px */
-  height: 8.33vh; /* 90px / 1080px */
+  width: 5.73vw;
+  height: 8.33vh;
   bottom: 0;
   left: 0;
   z-index: 5;
@@ -36,8 +36,8 @@ html, body {
 
 #lighthouse {
   position: absolute;
-  width: 19.79vw; /* 380px / 1920px */
-  height: 48.15vh; /* 520px / 1080px */
+  width: 19.79vw;
+  height: 48.15vh;
   bottom: 0;
   right: 0;
   z-index: 5;
@@ -45,13 +45,13 @@ html, body {
 
 .coin {
   position: absolute;
-  width: 1.56vw; /* 30px / 1920px */
+  width: 1.56vw;
   z-index: 4;
 }
 
 .wave {
   position: absolute;
-  width: 5.21vw; /* 100px / 1920px */
+  width: 5.21vw;
   z-index: 4;
 }
 
@@ -64,7 +64,7 @@ html, body {
 
 #startGameBtn, #fullscreenBtn {
   position: absolute;
-  bottom: 2.78vh; /* 30px / 1080px */
+  bottom: 2.78vh;
   left: 50%;
   transform: translateX(-50%);
   padding: 15px 30px;
@@ -79,7 +79,7 @@ html, body {
 }
 
 #fullscreenBtn {
-  bottom: 7vh; /* Position above start button */
+  bottom: 7vh;
 }
 
 #startGameBtn:hover, #fullscreenBtn:hover {
@@ -96,7 +96,7 @@ html, body {
   top: 0;
   left: 0;
   width: 100%;
-  height: 4.63vh; /* 50px / 1080px */
+  height: 4.63vh;
   background: rgba(0, 0, 0, 0.85);
   z-index: 1000;
   box-sizing: border-box;

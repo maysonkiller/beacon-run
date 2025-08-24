@@ -8,20 +8,9 @@ const walletStatus = document.getElementById("walletStatus");
 const mobileHint = document.getElementById("mobileHint");
 let provider, signer, contract, userAddress;
 
-// Detect mobile early
 const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 if (isMobile && mobileHint) {
   mobileHint.style.display = 'block';
-}
-
-// Dynamic load WalletConnect for mobile only
-if (isMobile) {
-  const script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.15.3/dist/umd/index.min.js';
-  script.async = true;
-  script.onload = () => console.log('WalletConnect loaded');
-  script.onerror = () => alert('Failed to load WalletConnect. Check your connection or try in wallet app.');
-  document.head.appendChild(script);
 }
 
 // ===== Modal for nickname =====
@@ -34,7 +23,7 @@ function nicknameModal(onSubmit) {
     placeItems: "center", 
     background: "rgba(0,0,0,.6)", 
     zIndex: "9999",
-    padding: isMobile ? "10px" : "20px" // Smaller padding on mobile
+    padding: isMobile ? "10px" : "20px"
   });
   wrap.innerHTML = `
     <div style="
@@ -106,56 +95,68 @@ leaderBtn.addEventListener("click", () => {
 });
 
 // ===== Подключение кошелька + регистрация =====
-async function connect() {
+async function connectWallet() {
   try {
-    if (isMobile) {
-      if (!window.EthereumProvider) {
-        console.error("EthereumProvider not loaded");
-        alert("Please install an EVM-compatible wallet app (e.g., MetaMask, Trust Wallet)!");
-        return;
-      }
-      const wcProvider = await window.EthereumProvider.init({
-        projectId: "f3a4411a5d6201d00fd86817d41b64e8",
-        chains: [parseInt(window.PHAROS.chainId, 16)],
-        optionalChains: [parseInt(window.PHAROS.chainId, 16)],
-        rpcMap: {
-          [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
-        },
-        showQrModal: false, // Disable QR code
-        metadata: {
-          name: "Beacon Run",
-          description: "Play Beacon Run and Win Tokens",
-          url: window.location.origin,
-          icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"]
-        }
-      });
-
-      // Attempt direct connection to wallet apps
-      wcProvider.on("display_uri", (uri) => {
-        // Try MetaMask
-        const metamaskLink = `metamask://wc?uri=${encodeURIComponent(uri)}`;
-        const trustWalletLink = `trust://wc?uri=${encodeURIComponent(uri)}`;
-        // Try opening MetaMask first, fallback to Trust Wallet
-        window.location.href = metamaskLink;
-        setTimeout(() => {
-          // If MetaMask doesn't open, try Trust Wallet
-          window.location.href = trustWalletLink;
-        }, 1000);
-      });
-
-      await wcProvider.enable();
-      provider = new ethers.providers.Web3Provider(wcProvider);
-    } else {
-      if (!window.ethereum) { 
-        alert("Install an EVM-compatible wallet like MetaMask!");
-        return; 
-      }
+    if (!isMobile && typeof window.ethereum !== "undefined") {
+      // PC: Use browser extension (MetaMask, etc.)
       await window.ensurePharos();
       provider = new ethers.providers.Web3Provider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
+      signer = provider.getSigner();
+      userAddress = await signer.getAddress();
+    } else {
+      // Mobile: Use WalletConnect with deep links
+      const connector = new WalletConnect({
+        bridge: "https://bridge.walletconnect.org",
+        qrcodeModal: WalletConnectQRCodeModal
+      });
+
+      if (!connector.connected) {
+        await connector.createSession();
+        const uri = connector.uri;
+        const metamaskDeepLink = `metamask://wc?uri=${encodeURIComponent(uri)}`;
+        const trustDeepLink = `trust://wc?uri=${encodeURIComponent(uri)}`;
+        const coinbaseDeepLink = `cbwallet://wc?uri=${encodeURIComponent(uri)}`;
+
+        // Try MetaMask first
+        window.location.href = metamaskDeepLink;
+        setTimeout(() => {
+          if (!connector.connected) {
+            window.location.href = trustDeepLink;
+          }
+        }, 2000);
+        setTimeout(() => {
+          if (!connector.connected) {
+            window.location.href = coinbaseDeepLink;
+          }
+        }, 4000);
+
+        // Wait for connection
+        await new Promise((resolve, reject) => {
+          connector.on("connect", (error, payload) => {
+            if (error) return reject(error);
+            const { accounts } = payload.params[0];
+            userAddress = accounts[0];
+            resolve();
+          });
+          connector.on("disconnect", () => {
+            reject(new Error("Wallet disconnected"));
+          });
+        });
+      } else {
+        userAddress = connector.accounts[0];
+      }
+
+      // Set up provider with Pharos Testnet
+      provider = new ethers.providers.Web3Provider({
+        chainId: parseInt(window.PHAROS.chainId, 16),
+        name: "Pharos Testnet",
+        rpcUrls: [window.PHAROS.rpcUrls[0]],
+        connector
+      });
+      signer = provider.getSigner();
     }
-    signer = provider.getSigner();
-    userAddress = await signer.getAddress();
+
     contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
     const p = await contract.players(userAddress);
     if (!p.registered) {
@@ -191,9 +192,8 @@ function shortAddress(addr) {
   return addr.slice(0, 6) + "..." + addr.slice(-4);
 }
 
-connectBtn.addEventListener("click", connect);
+connectBtn.addEventListener("click", connectWallet);
 
-// ===== Переход в игру =====
 startBtn.addEventListener("click", async () => {
   if (!signer) { 
     alert("Connect wallet first!"); 

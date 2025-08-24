@@ -1,12 +1,9 @@
 // game.js
 document.addEventListener("DOMContentLoaded", () => {
-  // Detect mobile
   const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-  // Dynamic scaling for all devices
   const gameContainer = document.getElementById("game-container");
-  const baseWidth = 1920; // Base game width
-  const baseHeight = 1080; // Base game height
+  const baseWidth = 1920;
+  const baseHeight = 1080;
   function scaleGame() {
     const scale = Math.min(window.innerWidth / baseWidth, window.innerHeight / baseHeight);
     gameContainer.style.transform = `scale(${scale})`;
@@ -17,7 +14,6 @@ document.addEventListener("DOMContentLoaded", () => {
   scaleGame();
   window.addEventListener('resize', scaleGame);
 
-  // === DOM ===
   const startGameBtn = document.getElementById("startGameBtn");
   const mainMenuBtn = document.getElementById("mainMenuBtn");
   const leaderboardBtn = document.getElementById("leaderboardBtn");
@@ -29,48 +25,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const levelIndicator = document.getElementById("level-indicator");
   const hint = document.getElementById("hint");
 
-  // === Ethers ===
   let provider, signer, contract, playerAddress;
-  async function connect() {
+  async function connectWallet() {
     try {
-      if (isMobile) {
-        if (!window.EthereumProvider) {
-          console.error("EthereumProvider not loaded");
-          alert("Install an EVM-compatible wallet app (e.g., MetaMask, Trust Wallet)!");
-          return false;
-        }
-        const wcProvider = await window.EthereumProvider.init({
-          projectId: "f3a4411a5d6201d00fd86817d41b64e8",
-          chains: [parseInt(window.PHAROS.chainId, 16)],
-          optionalChains: [parseInt(window.PHAROS.chainId, 16)],
-          rpcMap: {
-            [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
-          },
-          showQrModal: false,
-          metadata: {
-            name: "Beacon Run",
-            description: "Play Beacon Run and Win Tokens",
-            url: window.location.origin,
-            icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"]
-          }
-        });
-
-        wcProvider.on("display_uri", (uri) => {
-          const metamaskLink = `metamask://wc?uri=${encodeURIComponent(uri)}`;
-          const trustWalletLink = `trust://wc?uri=${encodeURIComponent(uri)}`;
-          window.location.href = metamaskLink;
-          setTimeout(() => {
-            window.location.href = trustWalletLink;
-          }, 1000);
-        });
-
-        await wcProvider.enable();
-        provider = new ethers.providers.Web3Provider(wcProvider);
-      } else {
-        if (!window.ethereum) { 
-          alert("Install an EVM-compatible wallet like MetaMask!");
-          return false; 
-        }
+      if (!isMobile && typeof window.ethereum !== "undefined") {
         try {
           await window.ensurePharos();
         } catch (e) {
@@ -80,9 +38,57 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         provider = new ethers.providers.Web3Provider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        playerAddress = await signer.getAddress();
+      } else {
+        const connector = new WalletConnect({
+          bridge: "https://bridge.walletconnect.org",
+          qrcodeModal: WalletConnectQRCodeModal
+        });
+
+        if (!connector.connected) {
+          await connector.createSession();
+          const uri = connector.uri;
+          const metamaskDeepLink = `metamask://wc?uri=${encodeURIComponent(uri)}`;
+          const trustDeepLink = `trust://wc?uri=${encodeURIComponent(uri)}`;
+          const coinbaseDeepLink = `cbwallet://wc?uri=${encodeURIComponent(uri)}`;
+
+          window.location.href = metamaskDeepLink;
+          setTimeout(() => {
+            if (!connector.connected) {
+              window.location.href = trustDeepLink;
+            }
+          }, 2000);
+          setTimeout(() => {
+            if (!connector.connected) {
+              window.location.href = coinbaseDeepLink;
+            }
+          }, 4000);
+
+          await new Promise((resolve, reject) => {
+            connector.on("connect", (error, payload) => {
+              if (error) return reject(error);
+              const { accounts } = payload.params[0];
+              playerAddress = accounts[0];
+              resolve();
+            });
+            connector.on("disconnect", () => {
+              reject(new Error("Wallet disconnected"));
+            });
+          });
+        } else {
+          playerAddress = connector.accounts[0];
+        }
+
+        provider = new ethers.providers.Web3Provider({
+          chainId: parseInt(window.PHAROS.chainId, 16),
+          name: "Pharos Testnet",
+          rpcUrls: [window.PHAROS.rpcUrls[0]],
+          connector
+        });
+        signer = provider.getSigner();
       }
-      signer = provider.getSigner();
-      playerAddress = await signer.getAddress();
+
       contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
       const p = await contract.players(playerAddress);
       if (!p.registered) {
@@ -98,7 +104,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // === GAME STATE ===
   let gameActive = false;
   let currentLevel = 1;
   let collectedCoins = 0;
@@ -115,7 +120,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const GRAVITY = 0.6;
   const JUMP_V = 18;
 
-  // === UI helpers ===
   function modal(html) {
     const wrap = document.createElement("div");
     Object.assign(wrap.style, { 
@@ -150,11 +154,9 @@ document.addEventListener("DOMContentLoaded", () => {
     hint.textContent = `GOAL: COLLECT ALL COINS AND REACH THE LIGHTHOUSE!`;
   }
 
-  // === Геометрия ===
   const r = el => el.getBoundingClientRect();
   const intersect = (a, b) => a.left < b.right && a.right > b.left && a.bottom > b.top && a.top < b.bottom;
 
-  // === Настройки уровней ===
   function applyLevel(level) {
     const L = [
       { total: 10, waveSpeed: 3, accel: 0.02, coinSpawnMin: 1000, coinSpawnMax: 2000 },
@@ -171,7 +173,6 @@ document.addEventListener("DOMContentLoaded", () => {
     updateHUD();
   }
 
-  // === RESET мира ===
   function resetWorld() {
     clearTimeout(coinSpawnTimer); coinSpawnTimer = null;
     clearTimeout(waveSpawnTimer); waveSpawnTimer = null;
@@ -183,7 +184,6 @@ document.addEventListener("DOMContentLoaded", () => {
     keys = {};
   }
 
-  // === Запуск уровня ===
   async function startLevel() {
     startGameBtn.style.display = "none";
     mainMenuBtn.style.display = "none";
@@ -197,7 +197,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // === Отсчёт ===
   function countdown(sec, onDone) {
     const m = modal(`<div style="text-align:center">
       <div style="font-size:22px;margin-bottom:8px">Game starts in</div>
@@ -211,7 +210,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 1000);
   }
 
-  // === Волны ===
   function spawnNextWave() {
     if (!gameActive) return;
     const wave = document.createElement("img");
@@ -246,7 +244,6 @@ document.addEventListener("DOMContentLoaded", () => {
     waveSpawnTimer = setTimeout(spawnNextWave, base + Math.random() * extra);
   }
 
-  // === Монеты ===
   function spawnNextCoin() {
     if (!gameActive || droppedCoins >= totalCoins) return;
     const coin = document.createElement("img");
@@ -281,7 +278,6 @@ document.addEventListener("DOMContentLoaded", () => {
     coinSpawnTimer = setTimeout(spawnNextCoin, nextIn);
   }
 
-  // всплывашка +1
   function floatPlus(text, x, y) {
     const el = document.createElement("div");
     el.className = "float-plus"; el.textContent = text;
@@ -294,7 +290,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 16);
   }
 
-  // === Управление ===
   document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
   document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
@@ -338,10 +333,9 @@ document.addEventListener("DOMContentLoaded", () => {
     return parseFloat(character.style.bottom) <= 0;
   }
 
-  // === Платёжный модал ===
   async function showPaymentModal(callback) {
     try {
-      const ok = await connect(); if (!ok) return;
+      const ok = await connectWallet(); if (!ok) return;
       const fee = await contract.ENTRY_FEE();
       const m = modal(`<div style="text-align:center">
         <div style="font-size:18px;margin-bottom:8px">Entry fee — ${ethers.utils.formatEther(fee)} PHR</div>
@@ -371,7 +365,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // === Finish / GameOver ===
   async function finishLevel(reached) {
     if (!gameActive) return;
     gameActive = false;
@@ -473,7 +466,6 @@ document.addEventListener("DOMContentLoaded", () => {
     window.location.href = "leaderboard.html";
   });
 
-  // Mobile touch controls
   if (isMobile) {
     const touchArea = document.createElement("div");
     touchArea.style.position = "absolute";
