@@ -92,9 +92,20 @@ html, body {
 }
 
 /* HUD части */
-#hud-left { font-size: 18px; }
-#hud-center { font-size: 18px; font-weight: bold; }
-#hud-right { font-size: 14px; opacity: 0.9; text-align: right; }
+#hud-left {
+  font-size: 18px;
+}
+
+#hud-center {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+#hud-right {
+  font-size: 14px;
+  opacity: 0.9;
+  text-align: right;
+}
 
 /* +1 всплывашка */
 .float-plus {
