@@ -2,13 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
   <title>Beacon Run</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.15.3/dist/umd/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@latest/dist/umd/index.min.js"></script>
   <script src="network.js"></script>
   <script src="contract.js"></script>
 </head>
@@ -34,7 +37,7 @@
 
   <!-- Видео-рамка -->
   <div class="video-frame">
-    <video id="introVideo" autoplay loop muted playsinline>
+    <video id="introVideo" autoplay loop muted playsinline preload="auto">
       <source src="video/intro.mp4" type="video/mp4">
       Your browser does not support the video tag.
     </video>
@@ -58,5 +61,24 @@
   <!-- Музыка -->
   <audio id="bgMusic" src="music/music.mp3" loop></audio>
   <script src="script.js"></script>
+  <script>
+    // Force video play on mobile touch
+    const introVideo = document.getElementById("introVideo");
+    document.addEventListener('touchstart', () => {
+      introVideo.play().catch(() => {});
+    }, { once: true });
+
+    // Full screen on click (user gesture)
+    document.addEventListener('click', () => {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }, { once: true });
+
+    // Orientation change to landscape
+    window.addEventListener('orientationchange', () => {
+      if (window.orientation === 0) { // Portrait
+        alert("Please rotate to landscape for better experience");
+      }
+    });
+  </script>
 </body>
 </html>

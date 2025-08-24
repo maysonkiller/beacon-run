@@ -113,7 +113,7 @@ async function connect() {
           rpcMap: {
             [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
           },
-          showQrModal: false, // Disable built-in modal for mobile
+          showQrModal: true, // Показ QR в браузере
           metadata: {
             name: "Beacon Run",
             description: "Play Beacon Run and Win Tokens",
@@ -122,19 +122,13 @@ async function connect() {
           }
         });
 
-        wcProvider.on("display_uri", (uri) => {
-          // Deep link для MetaMask. Для Trust: `trust://wc?uri=${encodeURIComponent(uri)}`
-          // Для других: alert("Paste this URI in your wallet: " + uri);
-          const walletDeepLink = `metamask://wc?uri=${encodeURIComponent(uri)}`;
-          window.location.href = walletDeepLink;
-        });
-
+        // Убрал deep link для QR в браузере
         await wcProvider.enable();
         provider = new ethers.providers.Web3Provider(wcProvider);
       }
     } else {
       if (!window.ethereum) { 
-        alert("Установите EVM-совместимый кошелек, такой как MetaMask!");
+        alert("Install an EVM-compatible wallet like MetaMask!");
         return; 
       }
       await window.ensurePharos();
@@ -159,7 +153,7 @@ async function connect() {
             walletStatus.textContent = `Connected: ${shortAddress(userAddress)} | Name: ${p.nickname}`;
             startBtn.disabled = false;
           } else {
-            alert("Регистрация не удалась.");
+            alert("Registration failed.");
           }
         }
       });
@@ -169,7 +163,7 @@ async function connect() {
     }
   } catch (e) {
     console.error(e);
-    alert("Не удалось подключиться: " + e.message);
+    alert("Failed to connect: " + e.message);
   }
 }
 
@@ -182,7 +176,7 @@ connectBtn.addEventListener("click", connect);
 // ===== Переход в игру =====
 startBtn.addEventListener("click", async () => {
   if (!signer) { 
-    alert("Сначала подключите кошелек!"); 
+    alert("Connect wallet first!"); 
     return; 
   }
   window.location.href = "game.html";

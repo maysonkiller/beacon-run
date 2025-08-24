@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
           // WalletConnect
           if (!window.EthereumProvider) {
             console.error('WalletConnect library failed to load');
-            alert('WalletConnect не удалось загрузить. Проверьте интернет, перезагрузите страницу или откройте в приложении кошелька, таком как MetaMask/Trust Wallet.');
+            alert('WalletConnect failed to load. Check your internet, reload the page, or open in a wallet app such as MetaMask/Trust Wallet.');
             return;
           }
           const wcProvider = await window.EthereumProvider.init({
@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
             rpcMap: {
               [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
             },
-            showQrModal: false, // Disable for mobile
+            showQrModal: true, // Показ QR в браузере
             metadata: {
               name: "Beacon Run",
               description: "Play Beacon Run and Win Tokens",
@@ -69,23 +69,20 @@ document.addEventListener("DOMContentLoaded", () => {
             }
           });
 
-          wcProvider.on("display_uri", (uri) => {
-            window.location.href = `metamask://wc?uri=${encodeURIComponent(uri)}`; // Для Trust: trust://
-          });
-
+          // Убрал deep link для QR в браузере
           await wcProvider.enable();
           provider = new ethers.providers.Web3Provider(wcProvider);
         }
       } else {
         if (!window.ethereum) { 
-          alert("Установите EVM-совместимый кошелек, такой как MetaMask, Trust Wallet или любой другой, который injects window.ethereum!"); 
+          alert("Install an EVM-compatible wallet like MetaMask, Trust Wallet, or any other that injects window.ethereum!"); 
           return false; 
         }
         try {
           await window.ensurePharos();
         } catch (e) {
           console.error("Network switch error:", e);
-          alert("Не удалось переключиться на Pharos Testnet. Проверьте настройки кошелька или отключите конфликтующие расширения.");
+          alert("Failed to switch to Pharos Testnet. Please check your wallet settings or disable conflicting extensions.");
           return false;
         }
         provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -101,7 +98,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return true;
     } catch (e) {
       console.error(e);
-      alert("Не удалось подключиться: " + e.message);
       return false;
     }
   }
@@ -119,8 +115,13 @@ document.addEventListener("DOMContentLoaded", () => {
   let coinSpawnMax = 2000;  // движение/прыжок
   let keys = {};
   let vy = 0;            // скорость по вертикали
-  const GRAVITY = 0.6;   // гравитация
-  const JUMP_V = 18;    // сила прыжка
+  const GRAVITY = 36;   // per second (0.6 * 60)
+  const JUMP_V = 1080;  // per second (18 * 60)
+  const MOVE_SPEED = 360; // per second (6 * 60)
+  const COIN_FALL_SPEED = 90; // per second (1.5 * 60)
+  const WAVE_INTERVAL_BASE = 1700; // ms
+  const WAVE_INTERVAL_EXTRA = 1400; // ms
+  const WAVE_FRAME_TIME = 0.02; // 20ms = 50fps base
   // === UI helpers ===
   function modal(html) {
     const wrap = document.createElement("div");
@@ -192,6 +193,7 @@ document.addEventListener("DOMContentLoaded", () => {
     },1000);
   }
   // === Волны (справа→налево) ===
+  let waveLastTime = 0;
   function spawnNextWave() {
     if (!gameActive) return;
     const wave = document.createElement("img");
@@ -201,12 +203,16 @@ document.addEventListener("DOMContentLoaded", () => {
     wave.style.right = "-140px";
     wavesContainer.appendChild(wave);
     let posRight = -140;
-    const iv = setInterval(()=>{
-      if (!gameActive) { clearInterval(iv); wave.remove(); return; }
-      posRight += waveSpeed; waveSpeed += waveAccel*0.1;
+    waveLastTime = performance.now();
+    function updateWave(time) {
+      if (!gameActive) { wave.remove(); return; }
+      const delta = (time - waveLastTime) / 1000;
+      waveLastTime = time;
+      posRight += waveSpeed * delta * 60; // normalize to 60fps
+      waveSpeed += waveAccel * 0.1 * delta * 60;
       wave.style.right = posRight + "px";
       const waveRect = r(wave);
-      const shrink = 0.30; // обрезаем по 30% со всех сторон (это хитбокс волны - редактируйте shrink для изменения зоны поражения)
+      const shrink = 0.30;
       const hitbox = {
         left: waveRect.left + waveRect.width*shrink,
         right: waveRect.right - waveRect.width*shrink,
@@ -214,25 +220,27 @@ document.addEventListener("DOMContentLoaded", () => {
         bottom: waveRect.bottom - waveRect.height*shrink
       };
       if (intersect(hitbox, r(character))) {
-        clearInterval(iv); wave.remove();
+        wave.remove();
         return gameOver(true);
       }
-      // ушла за левый край
       if (posRight > baseWidth + 140) {
-        clearInterval(iv); wave.remove();
+        wave.remove();
+        return;
       }
-    }, 20);
-    // следующая волна через 1–2 сек (faster on higher levels)
+      requestAnimationFrame(updateWave);
+    }
+    requestAnimationFrame(updateWave);
+    // следующая волна
     const base = 1700, extra = 1400 - currentLevel*200;
     waveSpawnTimer = setTimeout(spawnNextWave, base + Math.random()*extra);
   }
   // === Монеты ===
+  let coinLastTime = 0;
   function spawnNextCoin() {
     if (!gameActive || droppedCoins >= totalCoins) return;
     const coin = document.createElement("img");
     coin.src = "img/coin.png";
     coin.className = "coin";
-    // безопасная зона: между персонажем и маяком (logical)
     const posX = parseFloat(character.style.left) || 0;
     const lhLeft = baseWidth - lhWidth;
     const padding = 50;
@@ -245,19 +253,24 @@ document.addEventListener("DOMContentLoaded", () => {
     droppedCoins++;
     updateHUD();
     let posY = -50;
-    const iv = setInterval(() => {
-      if (!gameActive) { clearInterval(iv); coin.remove(); return; }
-      posY += 1.5;
+    coinLastTime = performance.now();
+    function updateCoin(time) {
+      if (!gameActive) { coin.remove(); return; }
+      const delta = (time - coinLastTime) / 1000;
+      coinLastTime = time;
+      posY += COIN_FALL_SPEED * delta;
       coin.style.top = posY + "px";
       if (intersect(r(coin), r(character))) {
         collectedCoins++;
         updateHUD();
         floatPlus("+1", parseFloat(coin.style.left) + 20, parseFloat(coin.style.top) - 10);
-        clearInterval(iv);
         coin.remove();
+        return;
       }
-      if (posY > baseHeight) { clearInterval(iv); coin.remove(); }
-    }, 20);
+      if (posY > baseHeight) { coin.remove(); return; }
+      requestAnimationFrame(updateCoin);
+    }
+    requestAnimationFrame(updateCoin);
     const nextIn = coinSpawnMin + Math.random()*(coinSpawnMax - coinSpawnMin);
     coinSpawnTimer = setTimeout(spawnNextCoin, nextIn);
   }
@@ -276,39 +289,40 @@ document.addEventListener("DOMContentLoaded", () => {
   // === Управление: arrows / WASD / ЦЫФВ + Space (jump) ===
   document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
   document.addEventListener("keyup",   e => keys[e.key.toLowerCase()] = false);
-  function moveLoop() {
+  let lastTime = 0;
+  function moveLoop(time) {
+    if (!lastTime) lastTime = time;
+    const delta = (time - lastTime) / 1000; // seconds
+    lastTime = time;
     if (gameActive) {
-      const speed = 6;
       let posX = parseFloat(character.style.left) || 0;
       let bottom = parseFloat(character.style.bottom) || 0;
       // horizontal
-      if (keys["arrowleft"] || keys["a"] || keys["ф"]) posX -= speed;
-      if (keys["arrowright"] || keys["d"] || keys["в"]) posX += speed;
+      if (keys["arrowleft"] || keys["a"] || keys["ф"]) posX -= MOVE_SPEED * delta;
+      if (keys["arrowright"] || keys["d"] || keys["в"]) posX += MOVE_SPEED * delta;
       posX = Math.max(0, Math.min(baseWidth - charWidth, posX));
       character.style.left = posX + "px";
       // jump on space
       if ((keys[" "] || keys["arrowup"] || keys["w"] || keys["ц"]) && onGround()) vy = JUMP_V;
-      // gravity and jump (using bottom for consistency)
-      if (!onGround()) vy -= GRAVITY;
-      let newBottom = bottom + vy;
+      // gravity and jump
+      vy -= GRAVITY * delta;
+      let newBottom = bottom + vy * delta;
       if (newBottom < 0) {
         newBottom = 0;
-        vy = 0;  // Reset velocity on landing (prevents accumulation)
+        vy = 0;
       }
-      newBottom = Math.min(baseHeight - charHeight, newBottom);  // Optional: Cap max height if needed
+      newBottom = Math.min(baseHeight - charHeight, newBottom);
       character.style.bottom = newBottom + "px";
       const lhRect = r(lighthouse);
-      // Отдельные коэффициенты сжатия (padding) для каждой стороны (0 = нет сжатия, 0.5 = сжимаем на 50% с этой стороны)
-      // Уменьшай значение, чтобы расширить хитбокс в эту сторону или сделать ближе к краю
-      const paddingLeft = lhRect.width * 0.60;   // Сжатие слева (стандартное, не меняем)
-      const paddingRight = lhRect.width * 0.05;  // Меньше сжатие справа — хитбокс ближе к правому краю и растянут вправо
-      const paddingTop = lhRect.height * 0.50;   // Сжатие сверху (стандартное)
-      const paddingBottom = lhRect.height * 0.05; // Меньше сжатие снизу — хитбокс больше вниз ( растянут вниз)
+      const paddingLeft = lhRect.width * 0.60;
+      const paddingRight = lhRect.width * 0.05;
+      const paddingTop = lhRect.height * 0.50;
+      const paddingBottom = lhRect.height * 0.05;
       const lhHitbox = {
-        left: lhRect.left + paddingLeft,         // Левый край: сдвигаем вправо на paddingLeft
-        right: lhRect.right - paddingRight,      // Правый край: отнимаем меньше, чтобы растянуть вправо
-        top: lhRect.top + paddingTop,            // Верхний край: стандарт
-        bottom: lhRect.bottom - paddingBottom    // Нижний край: отнимаем меньше, чтобы растянуть вниз (больше в низ)
+        left: lhRect.left + paddingLeft,
+        right: lhRect.right - paddingRight,
+        top: lhRect.top + paddingTop,
+        bottom: lhRect.bottom - paddingBottom
       };
       if (intersect(r(character), lhHitbox)) {
         finishLevel(true);
@@ -316,7 +330,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     requestAnimationFrame(moveLoop);
   }
-  moveLoop();
+  moveLoop(performance.now());
   function onGround() {
     return parseFloat(character.style.bottom) <= 0;
   }
@@ -341,9 +355,9 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (e) {
           console.error(e);
           if (e.code === "ACTION_REJECTED") {
-            alert("Транзакция отменена пользователем.");
+            alert("Transaction canceled by user.");
           } else {
-            alert("Оплата не удалась.");
+            alert("Payment failed.");
           }
         }
       };
@@ -399,10 +413,10 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
           const tx = await contract.claimReward({ gasLimit: 300000 });
           await tx.wait();
-          alert("Награда получена!");
+          alert("Reward claimed!");
         } catch (e) {
           console.error(e);
-          alert("Получение награды не удалось.");
+          alert("Claim failed.");
         } finally {
           claimBtn.disabled = false;
         }
@@ -551,7 +565,7 @@ document.addEventListener("DOMContentLoaded", () => {
     jumpBtn.style.padding = "20px";
     jumpBtn.style.border = "2px solid #0ff";
     jumpBtn.style.background = "#000";
-    jumpBtn.style.color = "#0ff";
+    rightBtn.style.color = "#0ff";
     jumpBtn.style.borderRadius = "8px";
     jumpBtn.style.fontSize = "20px";
     jumpBtn.style.opacity = "0.7";

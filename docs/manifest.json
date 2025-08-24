@@ -1,0 +1,14 @@
+{
+  "name": "Beacon Run",
+  "short_name": "Beacon Run",
+  "orientation": "landscape",
+  "display": "fullscreen",
+  "start_url": ".",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}

@@ -6,6 +6,17 @@ html, body {
   height: 100vh;
 }
 
+/* Добавьте для landscape */
+@media (orientation: portrait) {
+  body {
+    transform: rotate(90deg);
+    transform-origin: center;
+    width: 100vh;
+    height: 100vw;
+    overflow: hidden;
+  }
+}
+
 /* Игровой контейнер */
 #game-container {
   position: relative;
@@ -73,7 +84,6 @@ html, body {
   z-index: 6;
 }
 
-/* HUD */
 #hud {
   position: absolute;
   top: 0;
@@ -81,35 +91,40 @@ html, body {
   width: 100%;
   height: 50px;
   background: rgba(0, 0, 0, 0.85);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
-  color: #0ff;
-  font-family: 'Space Grotesk', sans-serif;
-  z-index: 1000; /* гарантированно поверх всего */
+  z-index: 1000;
   box-sizing: border-box;
 }
 
-/* HUD части */
+/* Левый текст */
 #hud-left {
-  flex: 1; /* Занимает равную долю пространства */
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
   font-size: 18px;
-  text-align: left; /* Текст слева */
+  text-align: left;
 }
 
+/* Центр */
 #hud-center {
-  flex: 1; /* Занимает равную долю пространства */
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   font-size: 18px;
   font-weight: bold;
-  text-align: center; /* Текст по центру */
+  text-align: center;
 }
 
+/* Правый текст */
 #hud-right {
-  flex: 1; /* Занимает равную долю пространства */
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
   font-size: 14px;
   opacity: 0.9;
-  text-align: right; /* Текст справа */
+  text-align: right;
 }
 
 /* +1 всплывашка */

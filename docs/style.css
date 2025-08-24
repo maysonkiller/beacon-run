@@ -6,6 +6,17 @@ html, body {
   font-family:'Space Grotesk',sans-serif; text-align:center;
 }
 
+/* Добавьте для landscape hack, если нужно */
+@media (orientation: portrait) {
+  body {
+    transform: rotate(90deg);
+    transform-origin: center;
+    width: 100vh;
+    height: 100vw;
+    overflow: hidden;
+  }
+}
+
 /* Лого */
 .logo { position:fixed; top:10px; left:10px; cursor:pointer; }
 .logo img { width:150px; transition:.3s; }
