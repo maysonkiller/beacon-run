@@ -1,82 +1,64 @@
+/* game-style.css */
 html, body {
   margin: 0;
   padding: 0;
-  overflow: hidden; /* убираем скролл */
+  overflow: hidden;
   width: 100vw;
   height: 100vh;
+  background: #000;
 }
 
-/* Добавьте для landscape */
-@media (orientation: portrait) {
-  body {
-    transform: rotate(90deg);
-    transform-origin: center;
-    width: 100vh;
-    height: 100vw;
-    overflow: hidden;
-  }
-}
-
-/* Игровой контейнер */
 #game-container {
   position: relative;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+  width: 1920px;
+  height: 1080px;
   background: #000;
   color: #0ff;
   font-family: 'Space Grotesk', sans-serif;
 }
 
-/* Фоновое видео */
 #game-container video {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   z-index: 0;
 }
 
-/* ==== Размеры элементов (изменяйте размеры здесь) ==== */
-/* Персонаж: измените width и height для базового размера */
 #character {
   position: absolute;
-  width: 110px;   /* базовая ширина персонажа */
-  height: 90px;  /* базовая высота персонажа */
+  width: 110px;
+  height: 90px;
   bottom: 0;
-  left: 0px;        /* спавн в левом нижнем углу, как указано в SPAWN */
+  left: 0;
   z-index: 5;
 }
 
-/* Маяк: используем transform: scale для изменения размера, сохраняя пропорции */
 #lighthouse {
   position: absolute;
-  width: 380px;   /* базовая ширина маяка */
-  height: 520px;   /* базовая высота маяка */
+  width: 380px;
+  height: 520px;
   bottom: 0;
-  right: 0;       /* спавн в правом нижнем углу */
-  --lighthouse-scale: 1; /* изменяйте это значение для масштабирования (например, 1.5, 2, 3) */
-  transform: scale(var(--lighthouse-scale));
-  transform-origin: bottom right; /* точка масштабирования — правый нижний угол */
+  right: 0;
+  transform: scale(var(--lighthouse-scale, 1));
+  transform-origin: bottom right;
   z-index: 5;
 }
 
-/* Монета: измените width для размера */
 .coin {
   position: absolute;
   width: 30px;
   z-index: 4;
 }
 
-/* Волна: измените width для размера */
 .wave {
   position: absolute;
   width: 100px;
   z-index: 4;
 }
 
-/* Контейнеры */
 #coins-container, #waves-container {
   position: absolute;
   inset: 0;
@@ -84,8 +66,7 @@ html, body {
   z-index: 4;
 }
 
-/* Кнопка Start Game */
-#startGameBtn {
+#startGameBtn, #fullscreenBtn {
   position: absolute;
   bottom: 30px;
   left: 50%;
@@ -100,17 +81,20 @@ html, body {
   z-index: 5;
   transition: .3s;
 }
-#startGameBtn:hover {
+
+#fullscreenBtn {
+  bottom: 70px;
+}
+
+#startGameBtn:hover, #fullscreenBtn:hover {
   background: #0ff;
   color: #000;
 }
 
-/* Скрытые кнопки */
 #mainMenuBtn, #leaderboardBtn {
   display: none;
 }
 
-/* HUD */
 #hud {
   position: absolute;
   top: 0;
@@ -122,7 +106,6 @@ html, body {
   box-sizing: border-box;
 }
 
-/* Левый текст */
 #hud-left {
   position: absolute;
   left: 20px;
@@ -132,7 +115,6 @@ html, body {
   text-align: left;
 }
 
-/* Центр */
 #hud-center {
   position: absolute;
   left: 50%;
@@ -143,7 +125,6 @@ html, body {
   text-align: center;
 }
 
-/* Правый текст */
 #hud-right {
   position: absolute;
   right: 20px;
@@ -154,7 +135,6 @@ html, body {
   text-align: right;
 }
 
-/* +1 всплывашка */
 .float-plus {
   position: absolute;
   font-weight: 700;
@@ -164,14 +144,12 @@ html, body {
   font-size: 18px;
 }
 
-/* Mobile media query for extra adjustments */
-@media (max-width: 768px) { /* Or use orientation: portrait */
+@media (max-width: 768px) {
   #game-container {
-    /* Any mobile-specific CSS, e.g., smaller fonts if needed */
-    font-size: 14px; /* Example: reduce text size */
+    font-size: 14px;
   }
   #character {
-    width: 80px; /* Scale down elements if transform not enough */
+    width: 80px;
     height: 65px;
   }
   #lighthouse {

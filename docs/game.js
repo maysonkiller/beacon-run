@@ -1,15 +1,24 @@
 // game.js
 document.addEventListener("DOMContentLoaded", () => {
-  // Detect mobile
   const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-  // Dynamic scaling for all devices
   const gameContainer = document.getElementById("game-container");
-  const baseWidth = 1920; // Base game width
-  const baseHeight = 1080; // Base game height
+  const baseWidth = 1920;
+  const baseHeight = 1080;
+
   function scaleGame() {
-    const scale = Math.min(window.innerWidth / baseWidth, window.innerHeight / baseHeight);
-    gameContainer.style.transform = `scale(${scale})`;
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    const aspectRatio = baseWidth / baseHeight;
+    const windowAspectRatio = windowWidth / windowHeight;
+    let scale, translateX = 0, translateY = 0;
+    if (windowAspectRatio > aspectRatio) {
+      scale = windowHeight / baseHeight;
+      translateX = (windowWidth - baseWidth * scale) / 2;
+    } else {
+      scale = windowWidth / baseWidth;
+      translateY = (windowHeight - baseHeight * scale) / 2;
+    }
+    gameContainer.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
     gameContainer.style.transformOrigin = 'top left';
     gameContainer.style.width = `${baseWidth}px`;
     gameContainer.style.height = `${baseHeight}px`;
@@ -17,7 +26,6 @@ document.addEventListener("DOMContentLoaded", () => {
   scaleGame();
   window.addEventListener('resize', scaleGame);
 
-  // === DOM ===
   const startGameBtn = document.getElementById("startGameBtn");
   const mainMenuBtn = document.getElementById("mainMenuBtn");
   const leaderboardBtn = document.getElementById("leaderboardBtn");
@@ -29,20 +37,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const levelIndicator = document.getElementById("level-indicator");
   const hint = document.getElementById("hint");
 
-  // === Ethers ===
   let provider, signer, contract, playerAddress;
   async function connect() {
     try {
       if (isMobile) {
         if (!window.EthereumProvider) {
-          console.error("EthereumProvider not loaded");
-          alert("Install an EVM-compatible wallet app (e.g., MetaMask, Trust Wallet)!");
+          alert("Please install an EVM-compatible wallet app like MetaMask or Trust Wallet!");
           return false;
         }
         const wcProvider = await window.EthereumProvider.init({
           projectId: "f3a4411a5d6201d00fd86817d41b64e8",
           chains: [parseInt(window.PHAROS.chainId, 16)],
-          optionalChains: [parseInt(window.PHAROS.chainId, 16)],
           rpcMap: {
             [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
           },
@@ -56,20 +61,30 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         wcProvider.on("display_uri", (uri) => {
-          const metamaskLink = `metamask://wc?uri=${encodeURIComponent(uri)}`;
-          const trustWalletLink = `trust://wc?uri=${encodeURIComponent(uri)}`;
-          window.location.href = metamaskLink;
-          setTimeout(() => {
-            window.location.href = trustWalletLink;
-          }, 1000);
+          const deepLinks = [
+            `metamask://wc?uri=${encodeURIComponent(uri)}`,
+            `trust://wc?uri=${encodeURIComponent(uri)}`,
+            `cbwallet://wc?uri=${encodeURIComponent(uri)}`
+          ];
+          let connected = false;
+          deepLinks.forEach((link, index) => {
+            setTimeout(() => {
+              if (!connected) {
+                window.location.href = link;
+              }
+            }, index * 2000);
+          });
+          wcProvider.on("connect", () => {
+            connected = true;
+          });
         });
 
         await wcProvider.enable();
         provider = new ethers.providers.Web3Provider(wcProvider);
       } else {
-        if (!window.ethereum) { 
+        if (!window.ethereum) {
           alert("Install an EVM-compatible wallet like MetaMask!");
-          return false; 
+          return false;
         }
         try {
           await window.ensurePharos();
@@ -98,7 +113,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // === GAME STATE ===
   let gameActive = false;
   let currentLevel = 1;
   let collectedCoins = 0;
@@ -115,16 +129,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const GRAVITY = 0.6;
   const JUMP_V = 18;
 
-  // === UI helpers ===
   function modal(html) {
     const wrap = document.createElement("div");
     Object.assign(wrap.style, { 
-      position: "fixed", 
-      inset: "0", 
-      display: "grid", 
-      placeItems: "center", 
-      background: "rgba(0,0,0,.6)", 
-      zIndex: "9999",
+      position: "fixed", inset: "0", display: "grid", placeItems: "center", 
+      background: "rgba(0,0,0,.6)", zIndex: "9999",
       padding: isMobile ? "10px" : "20px"
     });
     wrap.innerHTML = `<div style="
@@ -150,11 +159,9 @@ document.addEventListener("DOMContentLoaded", () => {
     hint.textContent = `GOAL: COLLECT ALL COINS AND REACH THE LIGHTHOUSE!`;
   }
 
-  // === Геометрия ===
   const r = el => el.getBoundingClientRect();
   const intersect = (a, b) => a.left < b.right && a.right > b.left && a.bottom > b.top && a.top < b.bottom;
 
-  // === Настройки уровней ===
   function applyLevel(level) {
     const L = [
       { total: 10, waveSpeed: 3, accel: 0.02, coinSpawnMin: 1000, coinSpawnMax: 2000 },
@@ -171,7 +178,6 @@ document.addEventListener("DOMContentLoaded", () => {
     updateHUD();
   }
 
-  // === RESET мира ===
   function resetWorld() {
     clearTimeout(coinSpawnTimer); coinSpawnTimer = null;
     clearTimeout(waveSpawnTimer); waveSpawnTimer = null;
@@ -183,8 +189,11 @@ document.addEventListener("DOMContentLoaded", () => {
     keys = {};
   }
 
-  // === Запуск уровня ===
   async function startLevel() {
+    if (!signer) {
+      alert("Connect wallet first!");
+      return;
+    }
     startGameBtn.style.display = "none";
     mainMenuBtn.style.display = "none";
     leaderboardBtn.style.display = "none";
@@ -197,7 +206,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // === Отсчёт ===
   function countdown(sec, onDone) {
     const m = modal(`<div style="text-align:center">
       <div style="font-size:22px;margin-bottom:8px">Game starts in</div>
@@ -211,7 +219,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 1000);
   }
 
-  // === Волны ===
   function spawnNextWave() {
     if (!gameActive) return;
     const wave = document.createElement("img");
@@ -246,7 +253,6 @@ document.addEventListener("DOMContentLoaded", () => {
     waveSpawnTimer = setTimeout(spawnNextWave, base + Math.random() * extra);
   }
 
-  // === Монеты ===
   function spawnNextCoin() {
     if (!gameActive || droppedCoins >= totalCoins) return;
     const coin = document.createElement("img");
@@ -281,7 +287,6 @@ document.addEventListener("DOMContentLoaded", () => {
     coinSpawnTimer = setTimeout(spawnNextCoin, nextIn);
   }
 
-  // всплывашка +1
   function floatPlus(text, x, y) {
     const el = document.createElement("div");
     el.className = "float-plus"; el.textContent = text;
@@ -294,7 +299,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 16);
   }
 
-  // === Управление ===
   document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
   document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
@@ -338,10 +342,10 @@ document.addEventListener("DOMContentLoaded", () => {
     return parseFloat(character.style.bottom) <= 0;
   }
 
-  // === Платёжный модал ===
   async function showPaymentModal(callback) {
     try {
-      const ok = await connect(); if (!ok) return;
+      const ok = await connect();
+      if (!ok) return;
       const fee = await contract.ENTRY_FEE();
       const m = modal(`<div style="text-align:center">
         <div style="font-size:18px;margin-bottom:8px">Entry fee — ${ethers.utils.formatEther(fee)} PHR</div>
@@ -361,7 +365,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if (e.code === "ACTION_REJECTED") {
             alert("Transaction canceled by user.");
           } else {
-            alert("Payment failed.");
+            alert("Payment failed: " + e.message);
           }
         }
       };
@@ -371,7 +375,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // === Finish / GameOver ===
   async function finishLevel(reached) {
     if (!gameActive) return;
     gameActive = false;
@@ -413,7 +416,7 @@ document.addEventListener("DOMContentLoaded", () => {
           alert("Reward claimed!");
         } catch (e) {
           console.error(e);
-          alert("Claim failed.");
+          alert("Claim failed: " + e.message);
         } finally {
           claimBtn.disabled = false;
         }
@@ -462,7 +465,6 @@ document.addEventListener("DOMContentLoaded", () => {
     showPaymentModal(() => {
       startLevel();
     });
-    startGameBtn.disabled = false;
   });
 
   mainMenuBtn.addEventListener("click", () => {
@@ -473,7 +475,6 @@ document.addEventListener("DOMContentLoaded", () => {
     window.location.href = "leaderboard.html";
   });
 
-  // Mobile touch controls
   if (isMobile) {
     const touchArea = document.createElement("div");
     touchArea.style.position = "absolute";
@@ -523,5 +524,58 @@ document.addEventListener("DOMContentLoaded", () => {
       keys["arrowright"] = false;
       keys[" "] = false;
     });
+  } else {
+    if ('ontouchstart' in window) {
+      const controls = document.createElement("div");
+      controls.style.position = "fixed";
+      controls.style.bottom = "0";
+      controls.style.left = "0";
+      controls.style.width = "100%";
+      controls.style.display = "flex";
+      controls.style.justifyContent = "space-between";
+      controls.style.padding = "10px";
+      controls.style.boxSizing = "border-box";
+      controls.style.zIndex = "1000";
+      const leftBtn = document.createElement("button");
+      leftBtn.textContent = "Left";
+      leftBtn.style.padding = "20px";
+      leftBtn.style.border = "2px solid #0ff";
+      leftBtn.style.background = "#000";
+      leftBtn.style.color = "#0ff";
+      leftBtn.style.borderRadius = "8px";
+      leftBtn.style.fontSize = "20px";
+      leftBtn.style.opacity = "0.7";
+      leftBtn.addEventListener("touchstart", () => keys["arrowleft"] = true);
+      leftBtn.addEventListener("touchend", () => keys["arrowleft"] = false);
+      const rightBtn = document.createElement("button");
+      rightBtn.textContent = "Right";
+      rightBtn.style.padding = "20px";
+      rightBtn.style.border = "2px solid #0ff";
+      rightBtn.style.background = "#000";
+      rightBtn.style.color = "#0ff";
+      rightBtn.style.borderRadius = "8px";
+      rightBtn.style.fontSize = "20px";
+      rightBtn.style.opacity = "0.7";
+      rightBtn.addEventListener("touchstart", () => keys["arrowright"] = true);
+      rightBtn.addEventListener("touchend", () => keys["arrowright"] = false);
+      const jumpBtn = document.createElement("button");
+      jumpBtn.textContent = "Jump";
+      jumpBtn.style.padding = "20px";
+      jumpBtn.style.border = "2px solid #0ff";
+      jumpBtn.style.background = "#000";
+      jumpBtn.style.color = "#0ff";
+      jumpBtn.style.borderRadius = "8px";
+      jumpBtn.style.fontSize = "20px";
+      jumpBtn.style.opacity = "0.7";
+      jumpBtn.addEventListener("touchstart", () => keys[" "] = true);
+      jumpBtn.addEventListener("touchend", () => keys[" "] = false);
+      controls.appendChild(leftBtn);
+      controls.appendChild(rightBtn);
+      controls.appendChild(jumpBtn);
+      document.body.appendChild(controls);
+    }
   }
+
+  // Auto-connect wallet on page load
+  connect();
 });

@@ -7,19 +7,19 @@
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    body{ margin:0; background:#000; color:#0ff; font-family:'Space Grotesk',sans-serif; }
-    .wrap{ max-width:980px; margin:30px auto; padding:0 16px; }
-    h1{ margin:0 0 10px; }
-    .tabs{ display:flex; gap:10px; margin:14px 0 20px; }
-    .tabs button{ padding:10px 14px; border:2px solid #0ff; background:#000; color:#0ff; border-radius:10px; cursor:pointer; }
-    .tabs button.active{ background:#0ff; color:#000; }
-    table{ width:100%; border-collapse:collapse; background:rgba(0,10,20,.6); border:2px solid #0ff; border-radius:12px; overflow:hidden; }
-    th,td{ padding:10px; border-bottom:1px dashed #0ff3; text-align:left; }
-    th{ background:rgba(0,255,255,.08); }
-    tr:hover{ background:rgba(0,255,255,.06); }
-    .addr{ font-family:monospace; opacity:.9; }
-    .back{ margin:14px 0; display:inline-block; }
-    .back a{ color:#0ff; text-decoration:none; border-bottom:1px dashed #0ff; }
+    body { margin: 0; background: #000; color: #0ff; font-family: 'Space Grotesk', sans-serif; }
+    .wrap { max-width: 980px; margin: 30px auto; padding: 0 16px; }
+    h1 { margin: 0 0 10px; }
+    .tabs { display: flex; gap: 10px; margin: 14px 0 20px; }
+    .tabs button { padding: 10px 14px; border: 2px solid #0ff; background: #000; color: #0ff; border-radius: 10px; cursor: pointer; }
+    .tabs button.active { background: #0ff; color: #000; }
+    table { width: 100%; border-collapse: collapse; background: rgba(0,10,20,.6); border: 2px solid #0ff; border-radius: 12px; overflow: hidden; }
+    th, td { padding: 10px; border-bottom: 1px dashed #0ff3; text-align: left; }
+    th { background: rgba(0,255,255,.08); }
+    tr:hover { background: rgba(0,255,255,.06); }
+    .addr { font-family: monospace; opacity: .9; }
+    .back { margin: 14px 0; display: inline-block; }
+    .back a { color: #0ff; text-decoration: none; border-bottom: 1px dashed #0ff; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script src="network.js"></script>
@@ -32,12 +32,10 @@
       <button onclick="window.location.href='index.html'" style="padding: 10px 20px; border: 2px solid #0ff; background: #000; color: #0ff; border-radius: 8px; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-size: 16px; margin-right: 10px;">Back to Main</button>
       <button onclick="window.location.href='game.html'" style="padding: 10px 20px; border: 2px solid #0ff; background: #000; color: #0ff; border-radius: 8px; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-size: 16px;">Play Again</button>
     </div>
-
     <div class="tabs">
       <button id="tabAll" class="active">All players</button>
       <button id="tabTop">Top (completed all 3)</button>
     </div>
-
     <table id="tbl">
       <thead>
         <tr>
@@ -47,7 +45,6 @@
       <tbody></tbody>
     </table>
   </div>
-
   <script src="leaderboard.js"></script>
 </body>
 </html>
