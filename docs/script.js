@@ -89,8 +89,9 @@ leaderBtn.addEventListener("click", () => {
 async function connect() {
   try {
     if (isMobile) {
-      if (!window.EthereumProvider) {
-        alert("Please install an EVM-compatible wallet app like MetaMask or Trust Wallet!");
+      if (typeof window.EthereumProvider === 'undefined') {
+        console.error("EthereumProvider not loaded");
+        alert("Please open this game in a browser or wallet app that supports WalletConnect (e.g., MetaMask, Trust Wallet). If using Telegram/Discord, tap 'Open in Browser' and try again.");
         return;
       }
       const wcProvider = await window.EthereumProvider.init({
@@ -99,7 +100,7 @@ async function connect() {
         rpcMap: {
           [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
         },
-        showQrModal: false,
+        showQrModal: true,
         metadata: {
           name: "Beacon Run",
           description: "Play Beacon Run and Win Tokens",
@@ -109,21 +110,25 @@ async function connect() {
       });
 
       wcProvider.on("display_uri", (uri) => {
+        console.log("WalletConnect URI:", uri);
         const deepLinks = [
           `metamask://wc?uri=${encodeURIComponent(uri)}`,
           `trust://wc?uri=${encodeURIComponent(uri)}`,
-          `cbwallet://wc?uri=${encodeURIComponent(uri)}`
+          `cbwallet://wc?uri=${encodeURIComponent(uri)}`,
+          `wc:${uri}`
         ];
         let connected = false;
         deepLinks.forEach((link, index) => {
           setTimeout(() => {
             if (!connected) {
+              console.log(`Attempting deep link: ${link}`);
               window.location.href = link;
             }
           }, index * 2000);
         });
         wcProvider.on("connect", () => {
           connected = true;
+          console.log("WalletConnect connected");
         });
       });
 
@@ -151,14 +156,14 @@ async function connect() {
           walletStatus.textContent = `Connected: ${shortAddress(userAddress)} | Name: ${nickname}`;
           startBtn.disabled = false;
         } catch (regError) {
-          console.error(regError);
+          console.error("Registration error:", regError);
           if (regError.message.includes("already registered") || 
               (regError.data && regError.data.message.includes("already registered"))) {
             alert("You are already registered. Welcome back!");
             walletStatus.textContent = `Connected: ${shortAddress(userAddress)} | Name: ${p.nickname}`;
             startBtn.disabled = false;
           } else {
-            alert("Registration failed.");
+            alert("Registration failed: " + regError.message);
           }
         }
       });
@@ -168,8 +173,8 @@ async function connect() {
       startBtn.disabled = false;
     }
   } catch (e) {
-    console.error(e);
-    alert("Failed to connect: " + e.message);
+    console.error("Connect error:", e);
+    alert("Failed to connect wallet. Please ensure your wallet app is installed and try again.");
   }
 }
 

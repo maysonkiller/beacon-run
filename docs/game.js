@@ -6,22 +6,28 @@ document.addEventListener("DOMContentLoaded", () => {
   const baseHeight = 1080;
 
   function scaleGame() {
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-    const aspectRatio = baseWidth / baseHeight;
-    const windowAspectRatio = windowWidth / windowHeight;
-    let scale, translateX = 0, translateY = 0;
-    if (windowAspectRatio > aspectRatio) {
-      scale = windowHeight / baseHeight;
-      translateX = (windowWidth - baseWidth * scale) / 2;
+    if (isMobile) {
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      const aspectRatio = baseWidth / baseHeight;
+      const windowAspectRatio = windowWidth / windowHeight;
+      let scale, translateX = 0, translateY = 0;
+      if (windowAspectRatio > aspectRatio) {
+        scale = windowHeight / baseHeight;
+        translateX = (windowWidth - baseWidth * scale) / 2;
+      } else {
+        scale = windowWidth / baseWidth;
+        translateY = (windowHeight - baseHeight * scale) / 2;
+      }
+      gameContainer.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+      gameContainer.style.transformOrigin = 'top left';
+      gameContainer.style.width = `${baseWidth}px`;
+      gameContainer.style.height = `${baseHeight}px`;
     } else {
-      scale = windowWidth / baseWidth;
-      translateY = (windowHeight - baseHeight * scale) / 2;
+      gameContainer.style.transform = 'none';
+      gameContainer.style.width = '100vw';
+      gameContainer.style.height = '100vh';
     }
-    gameContainer.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-    gameContainer.style.transformOrigin = 'top left';
-    gameContainer.style.width = `${baseWidth}px`;
-    gameContainer.style.height = `${baseHeight}px`;
   }
   scaleGame();
   window.addEventListener('resize', scaleGame);
@@ -41,8 +47,9 @@ document.addEventListener("DOMContentLoaded", () => {
   async function connect() {
     try {
       if (isMobile) {
-        if (!window.EthereumProvider) {
-          alert("Please install an EVM-compatible wallet app like MetaMask or Trust Wallet!");
+        if (typeof window.EthereumProvider === 'undefined') {
+          console.error("EthereumProvider not loaded");
+          alert("Please open this game in a browser or wallet app that supports WalletConnect (e.g., MetaMask, Trust Wallet). If using Telegram/Discord, tap 'Open in Browser' and try again.");
           return false;
         }
         const wcProvider = await window.EthereumProvider.init({
@@ -51,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
           rpcMap: {
             [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
           },
-          showQrModal: false,
+          showQrModal: true, // Enable QR code fallback for iOS
           metadata: {
             name: "Beacon Run",
             description: "Play Beacon Run and Win Tokens",
@@ -61,21 +68,25 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         wcProvider.on("display_uri", (uri) => {
+          console.log("WalletConnect URI:", uri);
           const deepLinks = [
             `metamask://wc?uri=${encodeURIComponent(uri)}`,
             `trust://wc?uri=${encodeURIComponent(uri)}`,
-            `cbwallet://wc?uri=${encodeURIComponent(uri)}`
+            `cbwallet://wc?uri=${encodeURIComponent(uri)}`,
+            `wc:${uri}` // Universal WalletConnect scheme
           ];
           let connected = false;
           deepLinks.forEach((link, index) => {
             setTimeout(() => {
               if (!connected) {
+                console.log(`Attempting deep link: ${link}`);
                 window.location.href = link;
               }
             }, index * 2000);
           });
           wcProvider.on("connect", () => {
             connected = true;
+            console.log("WalletConnect connected");
           });
         });
 
@@ -107,8 +118,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       return true;
     } catch (e) {
-      console.error(e);
-      alert("WalletConnect error: " + e.message);
+      console.error("WalletConnect error:", e);
+      alert("Failed to connect wallet. Please ensure your wallet app is installed and try again.");
       return false;
     }
   }
@@ -361,7 +372,7 @@ document.addEventListener("DOMContentLoaded", () => {
           m.close();
           callback();
         } catch (e) {
-          console.error(e);
+          console.error("Payment error:", e);
           if (e.code === "ACTION_REJECTED") {
             alert("Transaction canceled by user.");
           } else {
@@ -370,7 +381,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       };
     } catch (e) {
-      console.error(e);
+      console.error("Payment modal error:", e);
       alert("Connect wallet first.");
     }
   }
@@ -383,7 +394,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const tx = await contract.submitResult(collectedCoins, currentLevel, reached, { gasLimit: 300000 });
       await tx.wait();
     } catch (e) {
-      console.error(e);
+      console.error("Submit result error:", e);
     }
     const gotAll = (collectedCoins >= totalCoins);
     const rewardPHR = collectedCoins / 100;
@@ -415,7 +426,7 @@ document.addEventListener("DOMContentLoaded", () => {
           await tx.wait();
           alert("Reward claimed!");
         } catch (e) {
-          console.error(e);
+          console.error("Claim reward error:", e);
           alert("Claim failed: " + e.message);
         } finally {
           claimBtn.disabled = false;
@@ -441,7 +452,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!gameActive) return;
     gameActive = false;
     clearTimeout(coinSpawnTimer); clearTimeout(waveSpawnTimer);
-    try { contract.submitResult(collectedCoins, currentLevel, false, { gasLimit: 300000 }); } catch (e) { console.error(e); }
+    try { contract.submitResult(collectedCoins, currentLevel, false, { gasLimit: 300000 }); } catch (e) { console.error("Submit result error:", e); }
     const m = modal(`<div style="text-align:center">
       <div style="font-size:22px;margin-bottom:6px">You were hit by a wave!</div>
       <div>Coins collected: <b>${collectedCoins}/${totalCoins}</b></div>
