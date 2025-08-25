@@ -1,144 +1,48 @@
-/* style.css */
+/* style.css (reduced title sizes, removed underline from socials, changed color) */
+/* Общие настройки */
 html, body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: #000;
-  color: #0ff;
-  font-family: 'Space Grotesk', sans-serif;
-  text-align: center;
+  margin:0; padding:0; width:100%; height:100%;
+  overflow:hidden; background:#000; color:#0ff;
+  font-family:'Space Grotesk',sans-serif; text-align:center;
 }
 
-.logo {
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  cursor: pointer;
-}
+/* Лого */
+.logo { position:fixed; top:10px; left:10px; cursor:pointer; }
+.logo img { width:150px; transition:.3s; }
+.logo:hover img { filter: drop-shadow(0 0 10px #0ff); }
 
-.logo img {
-  width: 150px;
-  transition: .3s;
-}
-
-.logo:hover img {
-  filter: drop-shadow(0 0 10px #0ff);
-}
-
-.top-buttons {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
+/* Кнопки правый верхний угол */
+.top-buttons { position:fixed; top:10px; right:10px; display:flex; flex-direction:column; gap:10px; }
 .top-buttons button {
-  padding: 10px 15px;
-  border: 2px solid #0ff;
-  border-radius: 8px;
-  background: #000;
-  color: #0ff;
-  font-size: 16px;
-  cursor: pointer;
-  transition: .3s;
+  padding:10px 15px; border:2px solid #0ff; border-radius:8px;
+  background:#000; color:#0ff; font-size:16px; cursor:pointer; transition:.3s;
 }
+.top-buttons button:hover { background:#0ff; color:#000; }
 
-.top-buttons button:hover {
-  background: #0ff;
-  color: #000;
-}
+/* Заголовок (reduced sizes) */
+.title { margin-top:60px; }
+.title h1 { font-size:36px; margin:0; text-shadow:2px 2px 8px #000; } /* was 48px */
+.title h2 { font-size:24px; margin:5px 0 20px; color:#19a8ad; text-shadow:1px 1px 6px #000; } /* was 32px */
 
-.title {
-  margin-top: 60px;
-}
-
-.title h1 {
-  font-size: 36px;
-  margin: 0;
-  text-shadow: 2px 2px 8px #000;
-}
-
-.title h2 {
-  font-size: 24px;
-  margin: 5px 0 20px;
-  color: #19a8ad;
-  text-shadow: 1px 1px 6px #000;
-}
-
+/* Видео рамка */
 .video-frame {
-  position: relative;
-  width: 530px;
-  height: 440px;
-  max-width: 90%;
-  margin: 0 auto;
-  border: 4px solid #0ff;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 0 25px #0ff4;
-  background: black;
+  position:relative; width:530px; height:440px; max-width:90%;
+  margin:0 auto; border:4px solid #0ff; border-radius:12px;
+  overflow:hidden; box-shadow:0 0 25px #0ff4; background:black;
 }
+.video-frame video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scale(2.3); }
 
-.video-frame video {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform: scale(2.3);
-}
-
-.start-container {
-  margin-top: 20px;
-}
-
+/* Start Game + соцсети */
+.start-container { margin-top:20px; }
 #startBtn {
-  padding: 15px 30px;
-  font-size: 20px;
-  border: 2px solid #0ff;
-  border-radius: 12px;
-  background: #000;
-  color: #0ff;
-  cursor: pointer;
-  transition: .3s;
+  padding:15px 30px; font-size:20px; border:2px solid #0ff; border-radius:12px;
+  background:#000; color:#0ff; cursor:pointer; transition:.3s;
 }
-
-#startBtn:hover {
-  background: #0ff;
-  color: #000;
-}
-
-.socials {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-  margin-top: 15px;
-}
-
+#startBtn:hover { background:#0ff; color:#000; }
+.socials { display:flex; justify-content:center; gap:15px; margin-top:15px; }
 .social-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border: 2px solid #0ff;
-  border-radius: 12px;
-  background: rgba(0,0,0,0.4);
-  color: #0ff;
-  font-size: 14px;
-  transition: .3s;
-  text-decoration: none;
+  display:flex; align-items:center; gap:8px; padding:8px 14px; border:2px solid #0ff; border-radius:12px;
+  background:rgba(0,0,0,0.4); color:#0ff; font-size:14px; transition:.3s; text-decoration:none; /* remove underline */
 }
-
-.social-btn:hover {
-  background: #0ff;
-  color: #000;
-  box-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
-}
-
-.twitter-icon {
-  width: 18px;
-  height: 18px;
-}
+.social-btn:hover { background:#0ff; color:#000; box-shadow:0 0 10px #0ff,0 0 20px #0ff; } /* changed hover color to #000 */
+.twitter-icon{ width:18px; height:18px; }

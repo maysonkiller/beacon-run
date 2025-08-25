@@ -5,25 +5,36 @@ const connectBtn = document.getElementById("connectBtn");
 const startBtn = document.getElementById("startBtn");
 const leaderBtn = document.getElementById("leaderBtn");
 const walletStatus = document.getElementById("walletStatus");
-const mobileHint = document.getElementById("mobileHint");
+const mobileHint = document.getElementById("mobileHint"); // New
 let provider, signer, contract, userAddress;
 
+// Detect mobile early
 const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 if (isMobile && mobileHint) {
   mobileHint.style.display = 'block';
 }
 
+// Dynamic load WalletConnect for mobile only
+if (isMobile) {
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.15.3/dist/umd/index.min.js';
+  script.async = true;
+  script.onload = () => console.log('WalletConnect loaded');
+  script.onerror = () => alert('Failed to load WalletConnect. Check your connection or try in wallet app.');
+  document.head.appendChild(script);
+}
+
+// ===== Modal for nickname =====
 function nicknameModal(onSubmit) {
   const wrap = document.createElement("div");
   Object.assign(wrap.style, { 
     position: "fixed", inset: "0", display: "grid", placeItems: "center", 
-    background: "rgba(0,0,0,.6)", zIndex: "9999",
-    padding: isMobile ? "10px" : "20px"
+    background: "rgba(0,0,0,.6)", zIndex: "9999"
   });
   wrap.innerHTML = `
     <div style="
-      min-width: ${isMobile ? '280px' : '320px'};
-      max-width: ${isMobile ? '95vw' : '90vw'};
+      min-width: 320px;
+      max-width: 90vw;
       background: rgba(10,12,25,.95);
       border: 2px solid #0ff;
       border-radius: 16px;
@@ -56,7 +67,8 @@ function nicknameModal(onSubmit) {
           cursor: pointer;
           box-sizing: border-box;
         ">Submit</button>
-    </div>`;
+    </div>
+  `;
   document.body.appendChild(wrap);
   const input = wrap.querySelector("#nickInput");
   const btn = wrap.querySelector("#submitNick");
@@ -72,26 +84,29 @@ function nicknameModal(onSubmit) {
   return { el: wrap };
 }
 
+// ===== Музыка =====
 musicBtn.addEventListener("click", () => {
   if (bgMusic.paused) {
-    bgMusic.play().catch(() => {});
-    musicBtn.textContent = "Music On";
+    bgMusic.play().catch(()=>{});
+    musicBtn.textContent = " Music On";
   } else {
     bgMusic.pause();
-    musicBtn.textContent = "Music Off";
+    musicBtn.textContent = " Music Off";
   }
 });
 
+// ===== Лидерборд =====
 leaderBtn.addEventListener("click", () => {
   window.location.href = "leaderboard.html";
 });
 
+// ===== Подключение кошелька + регистрация =====
 async function connect() {
   try {
     if (isMobile) {
-      if (typeof window.EthereumProvider === 'undefined') {
+      if (!window.EthereumProvider) {
         console.error("EthereumProvider not loaded");
-        alert("Please open this game in a browser or wallet app that supports WalletConnect (e.g., MetaMask, Trust Wallet). If using Telegram/Discord, tap 'Open in Browser' and try again.");
+        alert("Install an EVM - compatible wallet like metamask !");
         return;
       }
       const wcProvider = await window.EthereumProvider.init({
@@ -100,44 +115,29 @@ async function connect() {
         rpcMap: {
           [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
         },
-        showQrModal: true,
+        showQrModal: false, // Disable QR code in browser
         metadata: {
           name: "Beacon Run",
           description: "Play Beacon Run and Win Tokens",
           url: window.location.origin,
-          icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"]
+          icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"] // Replace with actual icon if needed
         }
       });
 
       wcProvider.on("display_uri", (uri) => {
-        console.log("WalletConnect URI:", uri);
-        const deepLinks = [
-          `metamask://wc?uri=${encodeURIComponent(uri)}`,
-          `trust://wc?uri=${encodeURIComponent(uri)}`,
-          `cbwallet://wc?uri=${encodeURIComponent(uri)}`,
-          `wc:${uri}`
-        ];
-        let connected = false;
-        deepLinks.forEach((link, index) => {
-          setTimeout(() => {
-            if (!connected) {
-              console.log(`Attempting deep link: ${link}`);
-              window.location.href = link;
-            }
-          }, index * 2000);
-        });
-        wcProvider.on("connect", () => {
-          connected = true;
-          console.log("WalletConnect connected");
-        });
+        // Redirect to MetaMask deep link or prompt user
+        const walletDeepLink = `metamask://wc?uri=${encodeURIComponent(uri)}`; // For MetaMask
+        // For Trust Wallet: `trust://wc?uri=${encodeURIComponent(uri)}`
+        // Or general: alert("Open in your wallet app and paste this URI: " + uri);
+        window.location.href = walletDeepLink;
       });
 
       await wcProvider.enable();
       provider = new ethers.providers.Web3Provider(wcProvider);
     } else {
-      if (!window.ethereum) {
+      if (!window.ethereum) { 
         alert("Install an EVM-compatible wallet like MetaMask!");
-        return;
+        return; 
       }
       await window.ensurePharos();
       provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -156,14 +156,12 @@ async function connect() {
           walletStatus.textContent = `Connected: ${shortAddress(userAddress)} | Name: ${nickname}`;
           startBtn.disabled = false;
         } catch (regError) {
-          console.error("Registration error:", regError);
+          console.error(regError);
           if (regError.message.includes("already registered") || 
               (regError.data && regError.data.message.includes("already registered"))) {
             alert("You are already registered. Welcome back!");
-            walletStatus.textContent = `Connected: ${shortAddress(userAddress)} | Name: ${p.nickname}`;
-            startBtn.disabled = false;
           } else {
-            alert("Registration failed: " + regError.message);
+            alert("Registration failed.");
           }
         }
       });
@@ -173,21 +171,22 @@ async function connect() {
       startBtn.disabled = false;
     }
   } catch (e) {
-    console.error("Connect error:", e);
-    alert("Failed to connect wallet. Please ensure your wallet app is installed and try again.");
+    console.error(e);
+    alert("Failed to connect: " + e.message);
   }
 }
 
 function shortAddress(addr) {
-  return addr.slice(0, 6) + "..." + addr.slice(-4);
+  return addr.slice(0,6) + "..." + addr.slice(-4);
 }
 
 connectBtn.addEventListener("click", connect);
 
+// ===== Переход в игру =====
 startBtn.addEventListener("click", async () => {
-  if (!signer) {
-    alert("Connect wallet first!");
-    return;
+  if (!signer) { 
+    alert("Connect wallet first!"); 
+    return; 
   }
   window.location.href = "game.html";
 });
