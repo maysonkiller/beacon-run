@@ -10,7 +10,6 @@
   <link rel="stylesheet" href="game-style.css">
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@latest/dist/umd/index.min.js"></script>
   <script src="network.js"></script>
   <script src="contract.js"></script>
 </head>
@@ -47,6 +46,11 @@
     const bgVideo = document.querySelector('video');
     document.addEventListener('touchstart', () => {
       bgVideo.play().catch(() => {});
+    }, { once: true });
+
+    // Full screen on game start or click
+    document.addEventListener('click', () => {
+      document.documentElement.requestFullscreen().catch(() => {});
     }, { once: true });
 
     // Orientation change to landscape

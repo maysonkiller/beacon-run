@@ -5,7 +5,7 @@ const connectBtn = document.getElementById("connectBtn");
 const startBtn = document.getElementById("startBtn");
 const leaderBtn = document.getElementById("leaderBtn");
 const walletStatus = document.getElementById("walletStatus");
-const mobileHint = document.getElementById("mobileHint"); // New
+const mobileHint = document.getElementById("mobileHint");
 let provider, signer, contract, userAddress;
 
 // Detect mobile early
@@ -61,7 +61,6 @@ function nicknameModal(onSubmit) {
   `;
   document.body.appendChild(wrap);
   const input = wrap.querySelector("#nickInput");
-  input.focus(); // Автофокус для мобильных
   const btn = wrap.querySelector("#submitNick");
   btn.onclick = () => {
     const nick = input.value.trim();
