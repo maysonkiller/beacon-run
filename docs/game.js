@@ -1,4 +1,6 @@
-// game.js
+// @ts-ignore
+/* eslint-disable no-undef */ // Ignore for undefined vars like window.EthereumProvider
+
 document.addEventListener("DOMContentLoaded", () => {
   // Detect mobile
   const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -6,11 +8,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // Mobile scaling
   if (isMobile) {
     const gameContainer = document.getElementById("game-container");
-    const baseWidth = 1920; // Assume base game width (adjust based on your design, e.g., from lighthouse/character sizes)
-    const baseHeight = 1080; // Assume base aspect
+    const baseWidth = 1920;
+    const baseHeight = 1080;
     function scaleGame() {
-      const scale = Math.min(window.innerWidth / baseWidth, window.innerHeight / baseHeight);
-      gameContainer.style.transform = `scale(${scale})`;
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      const aspectRatio = baseWidth / baseHeight;
+      const windowAspectRatio = windowWidth / windowHeight;
+      let scale, translateX = 0, translateY = 0;
+      if (windowAspectRatio > aspectRatio) {
+        scale = windowHeight / baseHeight;
+        translateX = (windowWidth - baseWidth * scale) / 2;
+      } else {
+        scale = windowWidth / baseWidth;
+        translateY = (windowHeight - baseHeight * scale) / 2;
+      }
+      gameContainer.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
       gameContainer.style.transformOrigin = 'top left';
       gameContainer.style.width = `${baseWidth}px`;
       gameContainer.style.height = `${baseHeight}px`;
@@ -32,28 +45,32 @@ document.addEventListener("DOMContentLoaded", () => {
   const hint = document.getElementById("hint");
   // === Ethers ===
   let provider, signer, contract, playerAddress;
+  let transactionInProgress = false; // Lock for transactions
   async function connect() {
     try {
       if (isMobile) {
         if (window.ethereum) {
-          // Если window.ethereum доступно (in-app браузер кошелька), используем напрямую
+          // If window.ethereum is available (in-app wallet browser), use directly
+          // @ts-ignore
           await window.ensurePharos();
+          // @ts-ignore
           provider = new ethers.providers.Web3Provider(window.ethereum);
           await provider.send("eth_requestAccounts", []);
         } else {
-          // WalletConnect
+          // Reown (WalletConnect v2)
           if (!window.EthereumProvider) {
-            console.error('WalletConnect library failed to load');
-            alert('WalletConnect failed to load. Check your internet, reload the page, or open in a wallet app such as MetaMask/Trust Wallet.');
-            return;
+            console.error('Reown library failed to load');
+            alert('Reown failed to load. Check your internet, reload the page, or open in a wallet app such as MetaMask/Trust Wallet.');
+            return false;
           }
+          // @ts-ignore
           const wcProvider = await window.EthereumProvider.init({
             projectId: "f3a4411a5d6201d00fd86817d41b64e8",
-            chains: [parseInt(window.PHAROS.chainId, 16)],
+            optionalChains: [parseInt(window.PHAROS.chainId, 16)],
             rpcMap: {
               [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
             },
-            showQrModal: true, // Показ QR в браузере
+            showQrModal: true,
             metadata: {
               name: "Beacon Run",
               description: "Play Beacon Run and Win Tokens",
@@ -61,9 +78,30 @@ document.addEventListener("DOMContentLoaded", () => {
               icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"]
             }
           });
-
-          // Убрал deep link для QR в браузере
+          wcProvider.on("display_uri", (uri) => {
+            console.log("Reown URI:", uri);
+            const deepLinks = [
+              `metamask://wc?uri=${encodeURIComponent(uri)}`,
+              `trust://wc?uri=${encodeURIComponent(uri)}`,
+              `cbwallet://wc?uri=${encodeURIComponent(uri)}`,
+              `wc:${uri}`
+            ];
+            let connected = false;
+            deepLinks.forEach((link, index) => {
+              setTimeout(() => {
+                if (!connected) {
+                  console.log(`Attempting deep link: ${link}`);
+                  window.location.href = link;
+                }
+              }, index * 2000);
+            });
+            wcProvider.on("connect", () => {
+              connected = true;
+              console.log("Reown connected");
+            });
+          });
           await wcProvider.enable();
+          // @ts-ignore
           provider = new ethers.providers.Web3Provider(wcProvider);
         }
       } else {
@@ -72,17 +110,20 @@ document.addEventListener("DOMContentLoaded", () => {
           return false; 
         }
         try {
+          // @ts-ignore
           await window.ensurePharos();
         } catch (e) {
           console.error("Network switch error:", e);
           alert("Failed to switch to Pharos Testnet. Please check your wallet settings or disable conflicting extensions.");
           return false;
         }
+        // @ts-ignore
         provider = new ethers.providers.Web3Provider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
       }
       signer = provider.getSigner();
       playerAddress = await signer.getAddress();
+      // @ts-ignore
       contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
       const p = await contract.players(playerAddress);
       if (!p.registered) {
@@ -92,7 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return true;
     } catch (e) {
       console.error(e);
-      alert("WalletConnect error: " + e.message);
+      alert("Failed to connect wallet. Please ensure your wallet app is installed and try again. If you have multiple wallet extensions, disable all except one.");
       return false;
     }
   }
@@ -101,27 +142,25 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentLevel = 1;
   let collectedCoins = 0;
   let totalCoins = 10;
-  let droppedCoins = 0;  // волны
+  let droppedCoins = 0;  // waves
   let waveSpeed = 3;
   let waveAccel = 0.02;
-  let waveSpawnTimer = null;  // монеты
+  let waveSpawnTimer = null;  // coins
   let coinSpawnTimer = null;
   let coinSpawnMin = 1000;
-  let coinSpawnMax = 2000;  // движение/прыжок
+  let coinSpawnMax = 2000;  // movement/jump
   let keys = {};
-  let vy = 0;            // скорость по вертикали
-  const GRAVITY = 0.6;   // гравитация
-  const JUMP_V = 18;    // сила прыжка
-  let transactionInProgress = false; // Lock for transactions
+  let vy = 0;            // vertical velocity
+  const GRAVITY = 0.6;   // gravity
+  const JUMP_V = 18;    // jump force
   let isVisible = true; // For visibility pause
+  let lastCoinLeft = 0; // Last coin position for avoiding same place
 
-  // Visibility change for pause
+  // Visibility change for restart
   document.addEventListener("visibilitychange", () => {
     isVisible = !document.hidden;
-    if (!isVisible) {
-      gameActive = false; // Pause game
-    } else if (gameActiveBeforePause) {
-      gameActive = true; // Resume if was active
+    if (!isVisible && gameActive) {
+      gameOver(false); // Restart game on hidden
     }
   });
   let gameActiveBeforePause = false;
@@ -138,12 +177,12 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateHUD() {
     coinCounter.textContent = `Coins: ${collectedCoins} / ${totalCoins}`;
     levelIndicator.textContent = `Level: ${currentLevel}`;
-    hint.textContent = `Goal: Collect all coins and reach the lighthouse!`;
+    hint.textContent = `GOAL: COLLECT ALL COINS AND REACH THE LIGHTHOUSE!`;
   }
-  // === Геометрия ===
+  // === Geometry ===
   const r = el => el.getBoundingClientRect();
   const intersect = (a,b) => a.left < b.right && a.right > b.left && a.bottom > b.top && a.top < b.bottom;
-  // === Настройки уровней ===
+  // === Level settings ===
   function applyLevel(level) {
     const L = [
       { total:10, waveSpeed:3, accel:0.02, coinSpawnMin:1000, coinSpawnMax:2000 },
@@ -157,9 +196,10 @@ document.addEventListener("DOMContentLoaded", () => {
     coinSpawnMax = L.coinSpawnMax;
     collectedCoins = 0;
     droppedCoins = 0;
+    lastCoinLeft = 0; // Reset last coin position on level start
     updateHUD();
   }
-  // === RESET мира ===
+  // === Reset world ===
   function resetWorld() {
     clearTimeout(coinSpawnTimer); coinSpawnTimer = null;
     clearTimeout(waveSpawnTimer); waveSpawnTimer = null;
@@ -170,7 +210,7 @@ document.addEventListener("DOMContentLoaded", () => {
     vy = 0;
     keys = {};
   }
-  // === Запуск уровня ===
+  // === Start level ===
   async function startLevel() {
     startGameBtn.style.display = "none"; // hide start button
     mainMenuBtn.style.display = "none";
@@ -179,11 +219,12 @@ document.addEventListener("DOMContentLoaded", () => {
     applyLevel(currentLevel);
     countdown(3, ()=> {
       gameActive = true;
+      gameActiveBeforePause = true;
       spawnNextCoin();
       spawnNextWave();
     });
   }
-  // === Отсчёт ===
+  // === Countdown ===
   function countdown(sec, onDone) {
     const m = modal(`<div style="text-align:center">
       <div style="font-size:22px;margin-bottom:8px">Game starts in</div>
@@ -196,12 +237,12 @@ document.addEventListener("DOMContentLoaded", () => {
       if (sec<=0) { clearInterval(iv); m.close(); onDone&&onDone(); }
     },1000);
   }
-  // === Волны (справа→налево) ===
+  // === Waves (from right to left) ===
   function spawnNextWave() {
     if (!gameActive) return;
     const wave = document.createElement("img");
     wave.src = "img/wave.png"; wave.className = "wave";
-    const waveH = 100; // визуальная высота волны (примерно)
+    const waveH = 100; // wave visual height (approx)
     const maxBottom = Math.max(0, Math.floor(window.innerHeight / 2 - waveH));
     wave.style.bottom = (Math.random() * maxBottom) + "px";
     wave.style.right = "-140px";
@@ -212,7 +253,7 @@ document.addEventListener("DOMContentLoaded", () => {
       posRight += waveSpeed; waveSpeed += waveAccel*0.1;
       wave.style.right = posRight + "px";
       const waveRect = r(wave);
-      const shrink = 0.30; // обрезаем по 30% со всех сторон (это хитбокс волны - редактируйте shrink для изменения зоны поражения)
+      const shrink = 0.30; // shrink 30% from all sides (wave hitbox - edit shrink to change hit zone)
       const hitbox = {
         left: waveRect.left + waveRect.width*shrink,
         right: waveRect.right - waveRect.width*shrink,
@@ -223,28 +264,36 @@ document.addEventListener("DOMContentLoaded", () => {
         clearInterval(iv); wave.remove();
         return gameOver(true);
       }
-      // ушла за левый край
+      // left the screen
       if (posRight > window.innerWidth + 140) {
         clearInterval(iv); wave.remove();
       }
     }, 20);
-    // следующая волна через 1–2 сек (faster on higher levels)
+    // next wave in 1-2 sec (faster on higher levels)
     const base = 1700, extra = 1400 - currentLevel*200;
     waveSpawnTimer = setTimeout(spawnNextWave, base + Math.random()*extra);
   }
-  // === Монеты ===
+  // === Coins ===
   function spawnNextCoin() {
-    if (!gameActive) return;
+    if (!gameActive || droppedCoins >= totalCoins) return;
     const coin = document.createElement("img");
     coin.src = "img/coin.png";
     coin.className = "coin";
-    // безопасная зона: между персонажем и маяком
+    // safe zone: between character and lighthouse
     const charRect = r(character);
     const lhRect = r(lighthouse);
     const padding = 50;
     const leftMinSafe = charRect.right + padding;
     const leftMaxSafe = lhRect.left - padding;
-    const left = Math.random() * (leftMaxSafe - leftMinSafe) + leftMinSafe;
+    let left = Math.random() * (leftMaxSafe - leftMinSafe) + leftMinSafe;
+    const minDistance = 200; // Minimum distance from last coin
+    // Ensure not too close to last coin
+    let attempts = 0;
+    while (Math.abs(left - lastCoinLeft) < minDistance && attempts < 10) {
+      left = Math.random() * (leftMaxSafe - leftMinSafe) + leftMinSafe;
+      attempts++;
+    }
+    lastCoinLeft = left; // Update last position
     coin.style.left = left + "px";
     coin.style.top = "-50px";
     coinsContainer.appendChild(coin);
@@ -267,7 +316,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const nextIn = coinSpawnMin + Math.random()*(coinSpawnMax - coinSpawnMin);
     coinSpawnTimer = setTimeout(spawnNextCoin, nextIn);
   }
-  // всплывашка +1
+  // +1 float text
   function floatPlus(text, x, y) {
     const el = document.createElement("div");
     el.className = "float-plus"; el.textContent = text;
@@ -279,7 +328,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (t>40) { clearInterval(iv); el.remove(); }
     }, 16);
   }
-  // === Управление: arrows / WASD / ЦЫФВ + Space (jump) ===
+  // === Controls: arrows / WASD / ЦЫФВ + Space (jump) ===
   document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
   document.addEventListener("keyup",   e => keys[e.key.toLowerCase()] = false);
   function moveLoop() {
@@ -303,17 +352,17 @@ document.addEventListener("DOMContentLoaded", () => {
       newBottom = Math.min(window.innerHeight - cr.height, newBottom);  // Optional: Cap max height if needed
       character.style.bottom = newBottom + "px";
       const lhRect = r(lighthouse);
-      // Отдельные коэффициенты сжатия (padding) для каждой стороны (0 = нет сжатия, 0.5 = сжимаем на 50% с этой стороны)
-      // Уменьшай значение, чтобы расширить хитбокс в эту сторону или сделать ближе к краю
-      const paddingLeft = lhRect.width * 0.60;   // Сжатие слева (стандартное, не меняем)
-      const paddingRight = lhRect.width * 0.05;  // Меньше сжатие справа — хитбокс ближе к правому краю и растянут вправо
-      const paddingTop = lhRect.height * 0.50;   // Сжатие сверху (стандартное)
-      const paddingBottom = lhRect.height * 0.05; // Меньше сжатие снизу — хитбокс больше вниз ( растянут вниз)
+      // Separate shrink coefficients (padding) for each side (0 = no shrink, 0.5 = shrink 50% from this side)
+      // Decrease value to expand hitbox in that direction or make closer to edge
+      const paddingLeft = lhRect.width * 0.60;   // Shrink from left (standard)
+      const paddingRight = lhRect.width * 0.05;  // Less shrink from right — hitbox closer to right edge and stretched right
+      const paddingTop = lhRect.height * 0.50;   // Shrink from top (standard)
+      const paddingBottom = lhRect.height * 0.05; // Less shrink from bottom — hitbox bigger down (stretched down)
       const lhHitbox = {
-        left: lhRect.left + paddingLeft,         // Левый край: сдвигаем вправо на paddingLeft
-        right: lhRect.right - paddingRight,      // Правый край: отнимаем меньше, чтобы растянуть вправо
-        top: lhRect.top + paddingTop,            // Верхний край: стандарт
-        bottom: lhRect.bottom - paddingBottom    // Нижний край: отнимаем меньше, чтобы растянуть вниз (больше в низ)
+        left: lhRect.left + paddingLeft,         // Left edge: shift right by paddingLeft
+        right: lhRect.right - paddingRight,      // Right edge: subtract less to stretch right
+        top: lhRect.top + paddingTop,            // Top edge: standard
+        bottom: lhRect.bottom - paddingBottom    // Bottom edge: subtract less to stretch down (bigger down)
       };
       if (intersect(r(character), lhHitbox)) {
         finishLevel(true);
@@ -325,7 +374,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function onGround() {
     return parseFloat(character.style.bottom) <= 0;
   }
-  // === Платёжный модал ===
+  // === Payment modal ===
   async function showPaymentModal(callback) {
     if (transactionInProgress) return; // Prevent multiple
     transactionInProgress = true;
@@ -339,7 +388,9 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
         ${btn("Pay & Start","go")}
       </div>`);
-      m.el.querySelector("#go").onclick = async () => {
+      const goBtn = m.el.querySelector("#go");
+      goBtn.onclick = async () => {
+        goBtn.disabled = true; // Disable to prevent multiple clicks
         try {
           const tx = await contract.startGame({ value: fee, gasLimit: 300000 });
           await tx.wait();
@@ -354,6 +405,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         } finally {
           transactionInProgress = false;
+          goBtn.disabled = false; // Re-enable if needed, but modal closed
         }
       };
     } catch (e) {
@@ -383,6 +435,7 @@ document.addEventListener("DOMContentLoaded", () => {
       await tx.wait();
     } catch (e) {
       console.error(e);
+      alert("Submit result failed: " + e.message);
     }
     const gotAll = (collectedCoins >= totalCoins);
     const rewardPHR = collectedCoins / 100;
@@ -415,7 +468,7 @@ document.addEventListener("DOMContentLoaded", () => {
           alert("Reward claimed!");
         } catch (e) {
           console.error(e);
-          alert("Claim failed.");
+          alert("Claim failed: " + e.message);
         } finally {
           claimBtn.disabled = false;
         }
@@ -447,8 +500,10 @@ document.addEventListener("DOMContentLoaded", () => {
     gameActiveBeforePause = false;
     clearTimeout(coinSpawnTimer); clearTimeout(waveSpawnTimer);
     // submit without reward
-    try { contract.submitResult(collectedCoins, currentLevel, false, { gasLimit: 300000 }); }
-    catch(e){ console.error(e); }
+    try { 
+      const tx = await contract.submitResult(collectedCoins, currentLevel, false, { gasLimit: 300000 });
+      await tx.wait();
+    } catch(e){ console.error(e); alert("Submit result failed: " + e.message); }
     const m = modal(`<div style="text-align:center">
       <div style="font-size:22px;margin-bottom:6px">You were hit by a wave!</div>
       <div>Coins collected: <b>${collectedCoins}/${totalCoins}</b></div>
@@ -475,7 +530,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Mobile touch controls
   let touchStartX = 0;
   let touchStartY = 0;
-  let touchThreshold = 50; // px for swipe detection
+  let touchThreshold = 30; // px for swipe detection (reduced for better response)
 
   if (isMobile) {
     const touchArea = document.createElement("div");
@@ -502,18 +557,15 @@ document.addEventListener("DOMContentLoaded", () => {
       const deltaX = touchX - touchStartX;
       const deltaY = touchY - touchStartY;
 
-      // Reset keys
       keys["arrowleft"] = false;
       keys["arrowright"] = false;
       keys[" "] = false;
 
-      // Horizontal movement
       if (Math.abs(deltaX) > touchThreshold) {
         if (deltaX < 0) keys["arrowleft"] = true;
         else keys["arrowright"] = true;
       }
 
-      // Jump (swipe up: deltaY negative)
       if (deltaY < -touchThreshold && onGround()) {
         keys[" "] = true;
       }
@@ -521,15 +573,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     touchArea.addEventListener("touchend", (e) => {
       e.preventDefault();
-      // Reset keys on end
       keys["arrowleft"] = false;
       keys["arrowright"] = false;
       keys[" "] = false;
     });
-
-    // Hide desktop touch buttons if any (remove old code)
   } else {
-    // Desktop controls unchanged
     if ('ontouchstart' in window) {
       const controls = document.createElement("div");
       controls.style.position = "fixed";

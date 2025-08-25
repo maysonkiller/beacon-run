@@ -2,7 +2,7 @@
   "name": "Beacon Run",
   "short_name": "Beacon Run",
   "orientation": "landscape",
-  "display": "fullscreen",
+  "display": "standalone",
   "start_url": ".",
   "icons": [
     {
