@@ -112,6 +112,20 @@ document.addEventListener("DOMContentLoaded", () => {
   let vy = 0;            // скорость по вертикали
   const GRAVITY = 0.6;   // гравитация
   const JUMP_V = 18;    // сила прыжка
+  let transactionInProgress = false; // Lock for transactions
+  let isVisible = true; // For visibility pause
+
+  // Visibility change for pause
+  document.addEventListener("visibilitychange", () => {
+    isVisible = !document.hidden;
+    if (!isVisible) {
+      gameActive = false; // Pause game
+    } else if (gameActiveBeforePause) {
+      gameActive = true; // Resume if was active
+    }
+  });
+  let gameActiveBeforePause = false;
+
   // === UI helpers ===
   function modal(html) {
     const wrap = document.createElement("div");
@@ -194,7 +208,7 @@ document.addEventListener("DOMContentLoaded", () => {
     wavesContainer.appendChild(wave);
     let posRight = -140;
     const iv = setInterval(()=>{
-      if (!gameActive) { clearInterval(iv); wave.remove(); return; }
+      if (!gameActive || !isVisible) { clearInterval(iv); wave.remove(); return; }
       posRight += waveSpeed; waveSpeed += waveAccel*0.1;
       wave.style.right = posRight + "px";
       const waveRect = r(wave);
@@ -220,7 +234,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   // === Монеты ===
   function spawnNextCoin() {
-    if (!gameActive || droppedCoins >= totalCoins) return;
+    if (!gameActive) return;
     const coin = document.createElement("img");
     coin.src = "img/coin.png";
     coin.className = "coin";
@@ -238,7 +252,7 @@ document.addEventListener("DOMContentLoaded", () => {
     updateHUD();
     let posY = -50;
     const iv = setInterval(() => {
-      if (!gameActive) { clearInterval(iv); coin.remove(); return; }
+      if (!gameActive || !isVisible) { clearInterval(iv); coin.remove(); return; }
       posY += 1.5;
       coin.style.top = posY + "px";
       if (intersect(r(coin), r(character))) {
@@ -269,7 +283,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
   document.addEventListener("keyup",   e => keys[e.key.toLowerCase()] = false);
   function moveLoop() {
-    if (gameActive) {
+    if (gameActive && isVisible) {
       const speed = 6;
       const cr = r(character);
       let left = cr.left, bottom = parseFloat(character.style.bottom) || 0;
@@ -291,7 +305,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const lhRect = r(lighthouse);
       // Отдельные коэффициенты сжатия (padding) для каждой стороны (0 = нет сжатия, 0.5 = сжимаем на 50% с этой стороны)
       // Уменьшай значение, чтобы расширить хитбокс в эту сторону или сделать ближе к краю
-      const paddingLeft = lhRect.width * 0.50;   // Сжатие слева (стандартное, не меняем)
+      const paddingLeft = lhRect.width * 0.60;   // Сжатие слева (стандартное, не меняем)
       const paddingRight = lhRect.width * 0.05;  // Меньше сжатие справа — хитбокс ближе к правому краю и растянут вправо
       const paddingTop = lhRect.height * 0.50;   // Сжатие сверху (стандартное)
       const paddingBottom = lhRect.height * 0.05; // Меньше сжатие снизу — хитбокс больше вниз ( растянут вниз)
@@ -313,6 +327,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   // === Платёжный модал ===
   async function showPaymentModal(callback) {
+    if (transactionInProgress) return; // Prevent multiple
+    transactionInProgress = true;
     try {
       const ok = await connect(); if (!ok) return;
       const fee = await contract.ENTRY_FEE();
@@ -336,11 +352,15 @@ document.addEventListener("DOMContentLoaded", () => {
           } else {
             alert("Payment failed.");
           }
+        } finally {
+          transactionInProgress = false;
         }
       };
     } catch (e) {
       console.error(e);
       alert("Connect wallet first. If you have multiple wallet extensions, disable all except one.");
+    } finally {
+      transactionInProgress = false;
     }
   }
   // === START (pay ENTRY_FEE) ===
@@ -355,6 +375,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function finishLevel(reached) {
     if (!gameActive) return;
     gameActive = false;
+    gameActiveBeforePause = false;
     clearTimeout(coinSpawnTimer); clearTimeout(waveSpawnTimer);
     // submit result
     try {
@@ -423,6 +444,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function gameOver(byWave=true) {
     if (!gameActive) return;
     gameActive = false;
+    gameActiveBeforePause = false;
     clearTimeout(coinSpawnTimer); clearTimeout(waveSpawnTimer);
     // submit without reward
     try { contract.submitResult(collectedCoins, currentLevel, false, { gasLimit: 300000 }); }

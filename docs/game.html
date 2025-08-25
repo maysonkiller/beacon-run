@@ -48,11 +48,6 @@
       bgVideo.play().catch(() => {});
     }, { once: true });
 
-    // Full screen on game start or click
-    document.addEventListener('click', () => {
-      document.documentElement.requestFullscreen().catch(() => {});
-    }, { once: true });
-
     // Orientation change to landscape
     window.addEventListener('orientationchange', () => {
       if (window.orientation === 0) { // Portrait

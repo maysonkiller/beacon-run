@@ -5,7 +5,7 @@ const connectBtn = document.getElementById("connectBtn");
 const startBtn = document.getElementById("startBtn");
 const leaderBtn = document.getElementById("leaderBtn");
 const walletStatus = document.getElementById("walletStatus");
-const mobileHint = document.getElementById("mobileHint");
+const mobileHint = document.getElementById("mobileHint"); // New
 let provider, signer, contract, userAddress;
 
 // Detect mobile early
@@ -103,7 +103,7 @@ async function connect() {
         // WalletConnect для случаев без window.ethereum
         if (!window.EthereumProvider) {
           console.error('WalletConnect library failed to load');
-          alert('WalletConnect не удалось загрузить. Проверьте интернет, перезагрузите страницу или откройте в приложении кошелька, таком как MetaMask/Trust Wallet.');
+          alert('WalletConnect failed to load. Check your internet, reload the page, or open in a wallet app such as MetaMask/Trust Wallet.');
           return;
         }
         const wcProvider = await window.EthereumProvider.init({
