@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="game-style.css">
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@latest/dist/umd/index.min.js"></script>
   <script src="network.js"></script>
   <script src="contract.js"></script>
 </head>
@@ -42,17 +43,6 @@
 
   <script src="game.js"></script>
   <script>
-    // Dynamic load WalletConnect for mobile only
-    const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    if (isMobile) {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.15.3/dist/umd/index.min.js';
-      script.async = true;
-      script.onload = () => console.log('WalletConnect loaded');
-      script.onerror = () => alert('Failed to load WalletConnect. Check your connection or try in wallet app.');
-      document.head.appendChild(script);
-    }
-
     // Force video play on mobile touch
     const bgVideo = document.querySelector('video');
     document.addEventListener('touchstart', () => {

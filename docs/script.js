@@ -14,16 +14,6 @@ if (isMobile && mobileHint) {
   mobileHint.style.display = 'block';
 }
 
-// Dynamic load WalletConnect for mobile only
-if (isMobile) {
-  const script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.15.3/dist/umd/index.min.js';
-  script.async = true;
-  script.onload = () => console.log('WalletConnect loaded');
-  script.onerror = () => alert('Failed to load WalletConnect. Check your connection or try in wallet app.');
-  document.head.appendChild(script);
-}
-
 // ===== Modal for nickname =====
 function nicknameModal(onSubmit) {
   const wrap = document.createElement("div");
@@ -71,6 +61,7 @@ function nicknameModal(onSubmit) {
   `;
   document.body.appendChild(wrap);
   const input = wrap.querySelector("#nickInput");
+  input.focus(); // Автофокус для мобильных
   const btn = wrap.querySelector("#submitNick");
   btn.onclick = () => {
     const nick = input.value.trim();
@@ -104,36 +95,37 @@ leaderBtn.addEventListener("click", () => {
 async function connect() {
   try {
     if (isMobile) {
-      if (!window.EthereumProvider) {
-        console.error("EthereumProvider not loaded");
-        alert("Install an EVM - compatible wallet like metamask !");
-        return;
-      }
-      const wcProvider = await window.EthereumProvider.init({
-        projectId: "f3a4411a5d6201d00fd86817d41b64e8",
-        chains: [parseInt(window.PHAROS.chainId, 16)],
-        rpcMap: {
-          [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
-        },
-        showQrModal: false, // Disable QR code in browser
-        metadata: {
-          name: "Beacon Run",
-          description: "Play Beacon Run and Win Tokens",
-          url: window.location.origin,
-          icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"] // Replace with actual icon if needed
+      if (window.ethereum) {
+        // Если window.ethereum доступно (in-app браузер кошелька), используем напрямую
+        await window.ensurePharos();
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+      } else {
+        // WalletConnect для случаев без window.ethereum
+        if (!window.EthereumProvider) {
+          console.error('WalletConnect library failed to load');
+          alert('WalletConnect не удалось загрузить. Проверьте интернет, перезагрузите страницу или откройте в приложении кошелька, таком как MetaMask/Trust Wallet.');
+          return;
         }
-      });
+        const wcProvider = await window.EthereumProvider.init({
+          projectId: "f3a4411a5d6201d00fd86817d41b64e8",
+          chains: [parseInt(window.PHAROS.chainId, 16)],
+          rpcMap: {
+            [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
+          },
+          showQrModal: true, // Показ QR в браузере
+          metadata: {
+            name: "Beacon Run",
+            description: "Play Beacon Run and Win Tokens",
+            url: window.location.origin,
+            icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"] // Replace with actual icon if needed
+          }
+        });
 
-      wcProvider.on("display_uri", (uri) => {
-        // Redirect to MetaMask deep link or prompt user
-        const walletDeepLink = `metamask://wc?uri=${encodeURIComponent(uri)}`; // For MetaMask
-        // For Trust Wallet: `trust://wc?uri=${encodeURIComponent(uri)}`
-        // Or general: alert("Open in your wallet app and paste this URI: " + uri);
-        window.location.href = walletDeepLink;
-      });
-
-      await wcProvider.enable();
-      provider = new ethers.providers.Web3Provider(wcProvider);
+        // Убрал deep link для QR в браузере
+        await wcProvider.enable();
+        provider = new ethers.providers.Web3Provider(wcProvider);
+      }
     } else {
       if (!window.ethereum) { 
         alert("Install an EVM-compatible wallet like MetaMask!");
@@ -152,21 +144,20 @@ async function connect() {
         try {
           const tx = await contract.registerPlayer(nickname, { gasLimit: 300000 });
           await tx.wait();
-          alert(`Registered: ${nickname}`);
           walletStatus.textContent = `Connected: ${shortAddress(userAddress)} | Name: ${nickname}`;
           startBtn.disabled = false;
         } catch (regError) {
           console.error(regError);
           if (regError.message.includes("already registered") || 
               (regError.data && regError.data.message.includes("already registered"))) {
-            alert("You are already registered. Welcome back!");
+            walletStatus.textContent = `Connected: ${shortAddress(userAddress)} | Name: ${p.nickname}`;
+            startBtn.disabled = false;
           } else {
             alert("Registration failed.");
           }
         }
       });
     } else {
-      alert(`Welcome back, ${p.nickname}!`);
       walletStatus.textContent = `Connected: ${shortAddress(userAddress)} | Name: ${p.nickname}`;
       startBtn.disabled = false;
     }
