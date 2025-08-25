@@ -68,11 +68,6 @@
       introVideo.play().catch(() => {});
     }, { once: true });
 
-    // Full screen on click (user gesture)
-    document.addEventListener('click', () => {
-      document.documentElement.requestFullscreen().catch(() => {});
-    }, { once: true });
-
     // Orientation change to landscape
     window.addEventListener('orientationchange', () => {
       if (window.orientation === 0) { // Portrait

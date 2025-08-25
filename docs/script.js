@@ -1,11 +1,10 @@
-// script.js
 const bgMusic = document.getElementById("bgMusic");
 const musicBtn = document.getElementById("musicBtn");
 const connectBtn = document.getElementById("connectBtn");
 const startBtn = document.getElementById("startBtn");
 const leaderBtn = document.getElementById("leaderBtn");
 const walletStatus = document.getElementById("walletStatus");
-const mobileHint = document.getElementById("mobileHint"); // New
+const mobileHint = document.getElementById("mobileHint");
 let provider, signer, contract, userAddress;
 
 // Detect mobile early
@@ -14,7 +13,7 @@ if (isMobile && mobileHint) {
   mobileHint.style.display = 'block';
 }
 
-// ===== Modal for nickname =====
+// Modal for nickname (оставляем без изменений)
 function nicknameModal(onSubmit) {
   const wrap = document.createElement("div");
   Object.assign(wrap.style, { 
@@ -61,7 +60,7 @@ function nicknameModal(onSubmit) {
   `;
   document.body.appendChild(wrap);
   const input = wrap.querySelector("#nickInput");
-  input.focus(); // Автофокус для мобильных
+  input.focus();
   const btn = wrap.querySelector("#submitNick");
   btn.onclick = () => {
     const nick = input.value.trim();
@@ -75,7 +74,7 @@ function nicknameModal(onSubmit) {
   return { el: wrap };
 }
 
-// ===== Музыка =====
+// Music and Leaderboard (оставляем без изменений)
 musicBtn.addEventListener("click", () => {
   if (bgMusic.paused) {
     bgMusic.play().catch(()=>{});
@@ -86,58 +85,36 @@ musicBtn.addEventListener("click", () => {
   }
 });
 
-// ===== Лидерборд =====
 leaderBtn.addEventListener("click", () => {
   window.location.href = "leaderboard.html";
 });
 
-// ===== Подключение кошелька + регистрация =====
+// Подключение кошелька через WalletConnect
 async function connect() {
   try {
-    if (isMobile) {
-      if (window.ethereum) {
-        // Если window.ethereum доступно (in-app браузер кошелька), используем напрямую
-        await window.ensurePharos();
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-      } else {
-        // WalletConnect для случаев без window.ethereum
-        if (!window.EthereumProvider) {
-          console.error('WalletConnect library failed to load');
-          alert('WalletConnect не удалось загрузить. Проверьте интернет, перезагрузите страницу или откройте в приложении кошелька, таком как MetaMask/Trust Wallet.');
-          return;
-        }
-        const wcProvider = await window.EthereumProvider.init({
-          projectId: "f3a4411a5d6201d00fd86817d41b64e8",
-          chains: [parseInt(window.PHAROS.chainId, 16)],
-          rpcMap: {
-            [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
-          },
-          showQrModal: true, // Показ QR в браузере
-          metadata: {
-            name: "Beacon Run",
-            description: "Play Beacon Run and Win Tokens",
-            url: window.location.origin,
-            icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"] // Replace with actual icon if needed
-          }
-        });
+    // Инициализация WalletConnect для мобильных устройств
+    const wcProvider = await window.EthereumProvider.init({
+      projectId: "f3a4411a5d6201d00fd86817d41b64e8", // Ваш projectId
+      chains: [parseInt(window.PHAROS.chainId, 16)],
+      rpcMap: {
+        [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
+      },
+      showQrModal: true, // Показ QR-кода для мобильных устройств
+      metadata: {
+        name: "Beacon Run",
+        description: "Play Beacon Run and Win Tokens",
+        url: window.location.origin,
+        icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"]
+      }
+    });
 
-        // Убрал deep link для QR в браузере
-        await wcProvider.enable();
-        provider = new ethers.providers.Web3Provider(wcProvider);
-      }
-    } else {
-      if (!window.ethereum) { 
-        alert("Install an EVM-compatible wallet like MetaMask!");
-        return; 
-      }
-      await window.ensurePharos();
-      provider = new ethers.providers.Web3Provider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
-    }
+    // Подключение к кошельку
+    await wcProvider.enable();
+    provider = new ethers.providers.Web3Provider(wcProvider);
     signer = provider.getSigner();
     userAddress = await signer.getAddress();
     contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
+
     const p = await contract.players(userAddress);
     if (!p.registered) {
       nicknameModal(async (nickname) => {
@@ -163,7 +140,7 @@ async function connect() {
     }
   } catch (e) {
     console.error(e);
-    alert("Failed to connect: " + e.message);
+    alert("Failed to connect: Please ensure a compatible wallet app is installed and try again.");
   }
 }
 
@@ -173,7 +150,7 @@ function shortAddress(addr) {
 
 connectBtn.addEventListener("click", connect);
 
-// ===== Переход в игру =====
+// Переход в игру
 startBtn.addEventListener("click", async () => {
   if (!signer) { 
     alert("Connect wallet first!"); 
