@@ -167,7 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateHUD() {
     coinCounter.textContent = `Coins: ${collectedCoins} / ${totalCoins}`;
     levelIndicator.textContent = `Level: ${currentLevel}`;
-    hint.textContent = `GOAL: COLLECT ALL COINS AND REACH THE LIGHTHOUSE!`;
+    hint.textContent = `Goal: Collect all coins and reach the lighthouse!`;
   }
 
   const r = el => el.getBoundingClientRect();
