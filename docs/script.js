@@ -7,12 +7,6 @@ const walletStatus = document.getElementById("walletStatus");
 const mobileHint = document.getElementById("mobileHint");
 let provider, signer, contract, userAddress;
 
-// Detect mobile early
-const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-if (isMobile && mobileHint) {
-  mobileHint.style.display = 'block';
-}
-
 // ===== Modal for nickname =====
 function nicknameModal(onSubmit) {
   const wrap = document.createElement("div");
@@ -92,45 +86,25 @@ leaderBtn.addEventListener("click", () => {
 // ===== Wallet connection + registration =====
 async function connect() {
   try {
-    if (isMobile) {
-      if (window.ethereum) {
-        // If window.ethereum is available (in-app wallet browser), use directly
-        await window.ensurePharos();
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-      } else {
-        // Reown (WalletConnect v2) for cases without window.ethereum
-        if (!EthereumProvider) {
-          console.error('Reown library failed to load');
-          alert('Reown failed to load. Check your internet, reload the page, or open in a wallet app such as MetaMask/Trust Wallet.');
-          return;
-        }
-        const wcProvider = await EthereumProvider.init({
-          projectId: "f3a4411a5d6201d00fd86817d41b64e8",
-          optionalChains: [parseInt(window.PHAROS.chainId, 16)],
-          rpcMap: {
-            [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
-          },
-          showQrModal: true,
-          metadata: {
-            name: "Beacon Run",
-            description: "Play Beacon Run and Win Tokens",
-            url: window.location.origin,
-            icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"]
-          }
-        });
-        await wcProvider.enable();
-        provider = new ethers.providers.Web3Provider(wcProvider);
-      }
-    } else {
-      if (!window.ethereum) { 
-        alert("Install an EVM-compatible wallet like MetaMask!");
-        return; 
-      }
-      await window.ensurePharos();
-      provider = new ethers.providers.Web3Provider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
+    // @ts-ignore
+    const { createWeb3Modal } = Web3Modal;
+    const web3Modal = createWeb3Modal({
+      projectId: "f3a4411a5d6201d00fd86817d41b64e8",
+      chains: [{
+        chainId: parseInt(window.PHAROS.chainId, 16),
+        name: window.PHAROS.chainName,
+        currency: window.PHAROS.nativeCurrency.symbol,
+        rpcUrl: window.PHAROS.rpcUrls[0],
+        explorerUrl: window.PHAROS.blockExplorerUrls[0]
+      }]
+    });
+    await web3Modal.open();
+    provider = web3Modal.getProvider();
+    if (!provider) {
+      alert("No provider found after connection.");
+      return;
     }
+    provider = new ethers.providers.Web3Provider(provider);
     signer = provider.getSigner();
     userAddress = await signer.getAddress();
     contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
