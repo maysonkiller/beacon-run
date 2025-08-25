@@ -32,42 +32,69 @@ document.addEventListener("DOMContentLoaded", () => {
   const hint = document.getElementById("hint");
   // === Ethers ===
   let provider, signer, contract, playerAddress;
-async function connect() {
-  try {
-    // Инициализация WalletConnect
-    const wcProvider = await window.EthereumProvider.init({
-      projectId: "f3a4411a5d6201d00fd86817d41b64e8",
-      chains: [parseInt(window.PHAROS.chainId, 16)],
-      rpcMap: {
-        [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
-      },
-      showQrModal: true,
-      metadata: {
-        name: "Beacon Run",
-        description: "Play Beacon Run and Win Tokens",
-        url: window.location.origin,
-        icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"]
-      }
-    });
+  async function connect() {
+    try {
+      if (isMobile) {
+        if (!window.EthereumProvider) {
+          console.error("EthereumProvider not loaded");
+          alert("Install an EVM - compatible wallet like metamask !");
+          return false;
+        }
+        const wcProvider = await window.EthereumProvider.init({
+          projectId: "f3a4411a5d6201d00fd86817d41b64e8",
+          chains: [parseInt(window.PHAROS.chainId, 16)],
+          rpcMap: {
+            [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
+          },
+          showQrModal: false, // Disable QR code in browser
+          metadata: {
+            name: "Beacon Run",
+            description: "Play Beacon Run and Win Tokens",
+            url: window.location.origin,
+            icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"]
+          }
+        });
 
-    // Подключение к кошельку
-    await wcProvider.enable();
-    provider = new ethers.providers.Web3Provider(wcProvider);
-    signer = provider.getSigner();
-    playerAddress = await signer.getAddress();
-    contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
-    const p = await contract.players(playerAddress);
-    if (!p.registered) {
-      location.href = "index.html";
+        wcProvider.on("display_uri", (uri) => {
+          // Redirect to MetaMask deep link or prompt user
+          const walletDeepLink = `metamask://wc?uri=${encodeURIComponent(uri)}`; // For MetaMask
+          // For Trust Wallet: `trust://wc?uri=${encodeURIComponent(uri)}`
+          // Or general: alert("Open in your wallet app and paste this URI: " + uri);
+          window.location.href = walletDeepLink;
+        });
+
+        await wcProvider.enable();
+        provider = new ethers.providers.Web3Provider(wcProvider);
+      } else {
+        if (!window.ethereum) { 
+          alert("Install an EVM-compatible wallet like MetaMask, Trust Wallet, or any other that injects window.ethereum!"); 
+          return false; 
+        }
+        try {
+          await window.ensurePharos();
+        } catch (e) {
+          console.error("Network switch error:", e);
+          alert("Failed to switch to Pharos Testnet. Please check your wallet settings or disable conflicting extensions.");
+          return false;
+        }
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+      }
+      signer = provider.getSigner();
+      playerAddress = await signer.getAddress();
+      contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
+      const p = await contract.players(playerAddress);
+      if (!p.registered) {
+        alert("Please register on the main page first.");
+        location.href = "index.html"; return false;
+      }
+      return true;
+    } catch (e) {
+      console.error(e);
+      alert("WalletConnect error: " + e.message);
       return false;
     }
-    return true;
-  } catch (e) {
-    console.error(e);
-    alert("Failed to connect: Please ensure a compatible wallet app is installed and try again.");
-    return false;
   }
-}
   // === GAME STATE ===
   let gameActive = false;
   let currentLevel = 1;
