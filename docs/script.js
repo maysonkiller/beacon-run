@@ -1,10 +1,11 @@
+// script.js
 const bgMusic = document.getElementById("bgMusic");
 const musicBtn = document.getElementById("musicBtn");
 const connectBtn = document.getElementById("connectBtn");
 const startBtn = document.getElementById("startBtn");
 const leaderBtn = document.getElementById("leaderBtn");
 const walletStatus = document.getElementById("walletStatus");
-const mobileHint = document.getElementById("mobileHint");
+const mobileHint = document.getElementById("mobileHint"); // New
 let provider, signer, contract, userAddress;
 
 // Detect mobile early
@@ -73,7 +74,7 @@ function nicknameModal(onSubmit) {
   return { el: wrap };
 }
 
-// ===== Music =====
+// ===== Музыка =====
 musicBtn.addEventListener("click", () => {
   if (bgMusic.paused) {
     bgMusic.play().catch(()=>{});
@@ -84,41 +85,43 @@ musicBtn.addEventListener("click", () => {
   }
 });
 
-// ===== Leaderboard =====
+// ===== Лидерборд =====
 leaderBtn.addEventListener("click", () => {
   window.location.href = "leaderboard.html";
 });
 
-// ===== Wallet connection + registration =====
+// ===== Подключение кошелька + регистрация =====
 async function connect() {
   try {
     if (isMobile) {
       if (window.ethereum) {
-        // If window.ethereum is available (in-app wallet browser), use directly
+        // Если window.ethereum доступно (in-app браузер кошелька), используем напрямую
         await window.ensurePharos();
         provider = new ethers.providers.Web3Provider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
       } else {
-        // Reown (WalletConnect v2) for cases without window.ethereum
-        if (!EthereumProvider) {
-          console.error('Reown library failed to load');
-          alert('Reown failed to load. Check your internet, reload the page, or open in a wallet app such as MetaMask/Trust Wallet.');
+        // WalletConnect для случаев без window.ethereum
+        if (!window.EthereumProvider) {
+          console.error('WalletConnect library failed to load');
+          alert('WalletConnect не удалось загрузить. Проверьте интернет, перезагрузите страницу или откройте в приложении кошелька, таком как MetaMask/Trust Wallet.');
           return;
         }
-        const wcProvider = await EthereumProvider.init({
+        const wcProvider = await window.EthereumProvider.init({
           projectId: "f3a4411a5d6201d00fd86817d41b64e8",
-          optionalChains: [parseInt(window.PHAROS.chainId, 16)],
+          chains: [parseInt(window.PHAROS.chainId, 16)],
           rpcMap: {
             [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
           },
-          showQrModal: true,
+          showQrModal: true, // Показ QR в браузере
           metadata: {
             name: "Beacon Run",
             description: "Play Beacon Run and Win Tokens",
             url: window.location.origin,
-            icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"]
+            icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"] // Replace with actual icon if needed
           }
         });
+
+        // Убрал deep link для QR в браузере
         await wcProvider.enable();
         provider = new ethers.providers.Web3Provider(wcProvider);
       }
@@ -159,7 +162,7 @@ async function connect() {
     }
   } catch (e) {
     console.error(e);
-    alert("Failed to connect: " + e.message + ". If you have multiple wallet extensions, disable all except one.");
+    alert("Failed to connect: " + e.message);
   }
 }
 
@@ -169,7 +172,7 @@ function shortAddress(addr) {
 
 connectBtn.addEventListener("click", connect);
 
-// ===== Go to game =====
+// ===== Переход в игру =====
 startBtn.addEventListener("click", async () => {
   if (!signer) { 
     alert("Connect wallet first!"); 
