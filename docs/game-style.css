@@ -1,20 +1,9 @@
 html, body {
   margin: 0;
   padding: 0;
-  overflow: hidden; /* remove scroll */
+  overflow: hidden;
   width: 100vw;
   height: 100vh;
-}
-
-/* For landscape */
-@media (orientation: portrait) {
-  body {
-    transform: rotate(90deg);
-    transform-origin: center;
-    width: 100vh;
-    height: 100vw;
-    overflow: hidden;
-  }
 }
 
 /* Game container */
@@ -34,7 +23,7 @@ html, body {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain; /* Adapt to screen */
   z-index: 0;
 }
 
@@ -171,4 +160,6 @@ html, body {
   .wave { width: 70px; }
   #coin-counter, #level-indicator, #hint { font-size: 14px; padding: 4px 8px; }
   #startGameBtn { font-size: 16px; padding: 10px 20px; }
+  #hud { height: 40px; }
+  #hud-left, #hud-center, #hud-right { font-size: 14px; }
 }
