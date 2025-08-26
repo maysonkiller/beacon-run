@@ -1,24 +1,5 @@
 // game.js
 document.addEventListener("DOMContentLoaded", () => {
-  // Detect mobile
-  const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-  // Mobile scaling
-  if (isMobile) {
-    const gameContainer = document.getElementById("game-container");
-    const baseWidth = 1920; // Assume base game width (adjust based on your design, e.g., from lighthouse/character sizes)
-    const baseHeight = 1080; // Assume base aspect
-    function scaleGame() {
-      const scale = Math.min(window.innerWidth / baseWidth, window.innerHeight / baseHeight);
-      gameContainer.style.transform = `scale(${scale})`;
-      gameContainer.style.transformOrigin = 'top left';
-      gameContainer.style.width = `${baseWidth}px`;
-      gameContainer.style.height = `${baseHeight}px`;
-    }
-    scaleGame();
-    window.addEventListener('resize', scaleGame);
-  }
-
   // === DOM ===
   const startGameBtn = document.getElementById("startGameBtn");
   const mainMenuBtn = document.getElementById("mainMenuBtn");
@@ -33,68 +14,28 @@ document.addEventListener("DOMContentLoaded", () => {
   // === Ethers ===
   let provider, signer, contract, playerAddress;
   async function connect() {
+    if (!window.ethereum) { 
+      alert("Install an EVM-compatible wallet like MetaMask, Trust Wallet, or any other that injects window.ethereum!"); 
+      return false; 
+    }
     try {
-      if (isMobile) {
-        if (window.ethereum) {
-          // Если window.ethereum доступно (in-app браузер кошелька), используем напрямую
-          await window.ensurePharos();
-          provider = new ethers.providers.Web3Provider(window.ethereum);
-          await provider.send("eth_requestAccounts", []);
-        } else {
-          // WalletConnect
-          if (!window.EthereumProvider) {
-            console.error('WalletConnect library failed to load');
-            alert('WalletConnect failed to load. Check your internet, reload the page, or open in a wallet app such as MetaMask/Trust Wallet.');
-            return;
-          }
-          const wcProvider = await window.EthereumProvider.init({
-            projectId: "f3a4411a5d6201d00fd86817d41b64e8",
-            chains: [parseInt(window.PHAROS.chainId, 16)],
-            rpcMap: {
-              [parseInt(window.PHAROS.chainId, 16)]: window.PHAROS.rpcUrls[0]
-            },
-            showQrModal: true, // Показ QR в браузере
-            metadata: {
-              name: "Beacon Run",
-              description: "Play Beacon Run and Win Tokens",
-              url: window.location.origin,
-              icons: ["https://testnet.pharosnetwork.xyz/favicon.ico"]
-            }
-          });
-
-          // Убрал deep link для QR в браузере
-          await wcProvider.enable();
-          provider = new ethers.providers.Web3Provider(wcProvider);
-        }
-      } else {
-        if (!window.ethereum) { 
-          alert("Install an EVM-compatible wallet like MetaMask, Trust Wallet, or any other that injects window.ethereum!"); 
-          return false; 
-        }
-        try {
-          await window.ensurePharos();
-        } catch (e) {
-          console.error("Network switch error:", e);
-          alert("Failed to switch to Pharos Testnet. Please check your wallet settings or disable conflicting extensions.");
-          return false;
-        }
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-      }
-      signer = provider.getSigner();
-      playerAddress = await signer.getAddress();
-      contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
-      const p = await contract.players(playerAddress);
-      if (!p.registered) {
-        alert("Please register on the main page first.");
-        location.href = "index.html"; return false;
-      }
-      return true;
+      await window.ensurePharos();
     } catch (e) {
-      console.error(e);
-      alert("WalletConnect error: " + e.message);
+      console.error("Network switch error:", e);
+      alert("Failed to switch to Pharos Testnet. Please check your wallet settings or disable conflicting extensions.");
       return false;
     }
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    signer = provider.getSigner();
+    playerAddress = await signer.getAddress();
+    contract = new ethers.Contract(window.BeaconRun_ADDRESS, window.BeaconRun_ABI, signer);
+    const p = await contract.players(playerAddress);
+    if (!p.registered) {
+      alert("Please register on the main page first.");
+      location.href = "/"; return false;
+    }
+    return true;
   }
   // === GAME STATE ===
   let gameActive = false;
@@ -112,20 +53,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let vy = 0;            // скорость по вертикали
   const GRAVITY = 0.6;   // гравитация
   const JUMP_V = 18;    // сила прыжка
-  let transactionInProgress = false; // Lock for transactions
-  let isVisible = true; // For visibility pause
-
-  // Visibility change for pause
-  document.addEventListener("visibilitychange", () => {
-    isVisible = !document.hidden;
-    if (!isVisible) {
-      gameActive = false; // Pause game
-    } else if (gameActiveBeforePause) {
-      gameActive = true; // Resume if was active
-    }
-  });
-  let gameActiveBeforePause = false;
-
   // === UI helpers ===
   function modal(html) {
     const wrap = document.createElement("div");
@@ -208,7 +135,7 @@ document.addEventListener("DOMContentLoaded", () => {
     wavesContainer.appendChild(wave);
     let posRight = -140;
     const iv = setInterval(()=>{
-      if (!gameActive || !isVisible) { clearInterval(iv); wave.remove(); return; }
+      if (!gameActive) { clearInterval(iv); wave.remove(); return; }
       posRight += waveSpeed; waveSpeed += waveAccel*0.1;
       wave.style.right = posRight + "px";
       const waveRect = r(wave);
@@ -234,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   // === Монеты ===
   function spawnNextCoin() {
-    if (!gameActive) return;
+    if (!gameActive || droppedCoins >= totalCoins) return;
     const coin = document.createElement("img");
     coin.src = "img/coin.png";
     coin.className = "coin";
@@ -252,7 +179,7 @@ document.addEventListener("DOMContentLoaded", () => {
     updateHUD();
     let posY = -50;
     const iv = setInterval(() => {
-      if (!gameActive || !isVisible) { clearInterval(iv); coin.remove(); return; }
+      if (!gameActive) { clearInterval(iv); coin.remove(); return; }
       posY += 1.5;
       coin.style.top = posY + "px";
       if (intersect(r(coin), r(character))) {
@@ -283,7 +210,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
   document.addEventListener("keyup",   e => keys[e.key.toLowerCase()] = false);
   function moveLoop() {
-    if (gameActive && isVisible) {
+    if (gameActive) {
       const speed = 6;
       const cr = r(character);
       let left = cr.left, bottom = parseFloat(character.style.bottom) || 0;
@@ -308,7 +235,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const paddingLeft = lhRect.width * 0.50;   // Сжатие слева (стандартное, не меняем)
       const paddingRight = lhRect.width * 0.05;  // Меньше сжатие справа — хитбокс ближе к правому краю и растянут вправо
       const paddingTop = lhRect.height * 0.50;   // Сжатие сверху (стандартное)
-      const paddingBottom = lhRect.height * 0.05; // Меньше сжатие снизу — хитбокс больше вниз ( растянут вниз)
+      const paddingBottom = lhRect.height * 0.05; // Меньше сжатие снизу — хитбокс больше вниз (растянут вниз)
       const lhHitbox = {
         left: lhRect.left + paddingLeft,         // Левый край: сдвигаем вправо на paddingLeft
         right: lhRect.right - paddingRight,      // Правый край: отнимаем меньше, чтобы растянуть вправо
@@ -327,8 +254,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   // === Платёжный модал ===
   async function showPaymentModal(callback) {
-    if (transactionInProgress) return; // Prevent multiple
-    transactionInProgress = true;
     try {
       const ok = await connect(); if (!ok) return;
       const fee = await contract.ENTRY_FEE();
@@ -352,15 +277,11 @@ document.addEventListener("DOMContentLoaded", () => {
           } else {
             alert("Payment failed.");
           }
-        } finally {
-          transactionInProgress = false;
         }
       };
     } catch (e) {
       console.error(e);
       alert("Connect wallet first. If you have multiple wallet extensions, disable all except one.");
-    } finally {
-      transactionInProgress = false;
     }
   }
   // === START (pay ENTRY_FEE) ===
@@ -375,7 +296,6 @@ document.addEventListener("DOMContentLoaded", () => {
   async function finishLevel(reached) {
     if (!gameActive) return;
     gameActive = false;
-    gameActiveBeforePause = false;
     clearTimeout(coinSpawnTimer); clearTimeout(waveSpawnTimer);
     // submit result
     try {
@@ -436,15 +356,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (menuBtnModal) menuBtnModal.onclick = () => { m.close(); window.location.href = "index.html"; };
     // show start button again if needed
     startGameBtn.style.display = "block";
-    mainMenuBtn.style.display = "block";
-    leaderboardBtn.style.display = "block";
     startGameBtn.disabled = false;
     resetWorld();
   }
   function gameOver(byWave=true) {
     if (!gameActive) return;
     gameActive = false;
-    gameActiveBeforePause = false;
     clearTimeout(coinSpawnTimer); clearTimeout(waveSpawnTimer);
     // submit without reward
     try { contract.submitResult(collectedCoins, currentLevel, false, { gasLimit: 300000 }); }
@@ -453,16 +370,16 @@ document.addEventListener("DOMContentLoaded", () => {
       <div style="font-size:22px;margin-bottom:6px">You were hit by a wave!</div>
       <div>Coins collected: <b>${collectedCoins}/${totalCoins}</b></div>
       <div style="margin-top:6px">You go back to Level 1.</div>
-      <div style="margin-top:6px">${btn("Restart from Level 1","btnR","width:100%")}</div>
-      <div style="margin-top:6px">${btn("Leaderboard","btnLeader","width:100%")}</div>
-      <div style="margin-top:6px">${btn("Main Menu","btnMenu","width:100%")}</div>
+      ${btn("Restart from Level 1","btnR","width:100%;margin-top:10px")}
+      ${btn("Leaderboard","btnLeader","width:100%;margin-top:10px")}
+      ${btn("Main Menu","btnMenu","width:100%;margin-top:10px")}
       </div>`);
     m.el.querySelector("#btnR").onclick = ()=>{ m.close(); currentLevel=1; showPaymentModal(() => { startLevel(); }); };
-    m.el.querySelector("#btnLeader").onclick = ()=>{ m.close(); window.location.href = "leaderboard.html"; };
-    m.el.querySelector("#btnMenu").onclick = ()=>{ m.close(); window.location.href = "index.html"; };
+    const leaderBtnModal = m.el.querySelector("#btnLeader");
+    if (leaderBtnModal) leaderBtnModal.onclick = () => { m.close(); window.location.href = "leaderboard.html"; };
+    const menuBtnModal = m.el.querySelector("#btnMenu");
+    if (menuBtnModal) menuBtnModal.onclick = () => { m.close(); window.location.href = "index.html"; };
     startGameBtn.style.display = "block";
-    mainMenuBtn.style.display = "block";
-    leaderboardBtn.style.display = "block";
     startGameBtn.disabled = false;
     resetWorld();
   }
@@ -473,111 +390,53 @@ document.addEventListener("DOMContentLoaded", () => {
     window.location.href = "leaderboard.html";
   });
   // Mobile touch controls
-  let touchStartX = 0;
-  let touchStartY = 0;
-  let touchThreshold = 50; // px for swipe detection
-
-  if (isMobile) {
-    const touchArea = document.createElement("div");
-    touchArea.style.position = "absolute";
-    touchArea.style.left = "0";
-    touchArea.style.bottom = "0";
-    touchArea.style.width = "50%";
-    touchArea.style.height = "100%";
-    touchArea.style.opacity = "0"; // Invisible
-    touchArea.style.zIndex = "1000";
-    document.body.appendChild(touchArea);
-
-    touchArea.addEventListener("touchstart", (e) => {
-      e.preventDefault();
-      touchStartX = e.touches[0].clientX;
-      touchStartY = e.touches[0].clientY;
-    });
-
-    touchArea.addEventListener("touchmove", (e) => {
-      e.preventDefault();
-      if (!gameActive) return;
-      const touchX = e.touches[0].clientX;
-      const touchY = e.touches[0].clientY;
-      const deltaX = touchX - touchStartX;
-      const deltaY = touchY - touchStartY;
-
-      // Reset keys
-      keys["arrowleft"] = false;
-      keys["arrowright"] = false;
-      keys[" "] = false;
-
-      // Horizontal movement
-      if (Math.abs(deltaX) > touchThreshold) {
-        if (deltaX < 0) keys["arrowleft"] = true;
-        else keys["arrowright"] = true;
-      }
-
-      // Jump (swipe up: deltaY negative)
-      if (deltaY < -touchThreshold && onGround()) {
-        keys[" "] = true;
-      }
-    });
-
-    touchArea.addEventListener("touchend", (e) => {
-      e.preventDefault();
-      // Reset keys on end
-      keys["arrowleft"] = false;
-      keys["arrowright"] = false;
-      keys[" "] = false;
-    });
-
-    // Hide desktop touch buttons if any (remove old code)
-  } else {
-    // Desktop controls unchanged
-    if ('ontouchstart' in window) {
-      const controls = document.createElement("div");
-      controls.style.position = "fixed";
-      controls.style.bottom = "0";
-      controls.style.left = "0";
-      controls.style.width = "100%";
-      controls.style.display = "flex";
-      controls.style.justifyContent = "space-between";
-      controls.style.padding = "10px";
-      controls.style.boxSizing = "border-box";
-      controls.style.zIndex = "1000";
-      const leftBtn = document.createElement("button");
-      leftBtn.textContent = "Left";
-      leftBtn.style.padding = "20px";
-      leftBtn.style.border = "2px solid #0ff";
-      leftBtn.style.background = "#000";
-      leftBtn.style.color = "#0ff";
-      leftBtn.style.borderRadius = "8px";
-      leftBtn.style.fontSize = "20px";
-      leftBtn.style.opacity = "0.7";
-      leftBtn.addEventListener("touchstart", () => keys["arrowleft"] = true);
-      leftBtn.addEventListener("touchend", () => keys["arrowleft"] = false);
-      const rightBtn = document.createElement("button");
-      rightBtn.textContent = "Right";
-      rightBtn.style.padding = "20px";
-      rightBtn.style.border = "2px solid #0ff";
-      rightBtn.style.background = "#000";
-      rightBtn.style.color = "#0ff";
-      rightBtn.style.borderRadius = "8px";
-      rightBtn.style.fontSize = "20px";
-      rightBtn.style.opacity = "0.7";
-      rightBtn.addEventListener("touchstart", () => keys["arrowright"] = true);
-      rightBtn.addEventListener("touchend", () => keys["arrowright"] = false);
-      const jumpBtn = document.createElement("button");
-      jumpBtn.textContent = "Jump";
-      jumpBtn.style.padding = "20px";
-      jumpBtn.style.border = "2px solid #0ff";
-      jumpBtn.style.background = "#000";
-      jumpBtn.style.color = "#0ff";
-      jumpBtn.style.borderRadius = "8px";
-      jumpBtn.style.fontSize = "20px";
-      jumpBtn.style.opacity = "0.7";
-      jumpBtn.addEventListener("touchstart", () => keys[" "] = true);
-      jumpBtn.addEventListener("touchend", () => keys[" "] = false);
-      controls.appendChild(leftBtn);
-      controls.appendChild(rightBtn);
-      controls.appendChild(jumpBtn);
-      document.body.appendChild(controls);
-    }
+  if ('ontouchstart' in window) {
+    const controls = document.createElement("div");
+    controls.style.position = "fixed";
+    controls.style.bottom = "0";
+    controls.style.left = "0";
+    controls.style.width = "100%";
+    controls.style.display = "flex";
+    controls.style.justifyContent = "space-between";
+    controls.style.padding = "10px";
+    controls.style.boxSizing = "border-box";
+    controls.style.zIndex = "1000";
+    const leftBtn = document.createElement("button");
+    leftBtn.textContent = "Left";
+    leftBtn.style.padding = "20px";
+    leftBtn.style.border = "2px solid #0ff";
+    leftBtn.style.background = "#000";
+    leftBtn.style.color = "#0ff";
+    leftBtn.style.borderRadius = "8px";
+    leftBtn.style.fontSize = "20px";
+    leftBtn.style.opacity = "0.7";
+    leftBtn.addEventListener("touchstart", () => keys["arrowleft"] = true);
+    leftBtn.addEventListener("touchend", () => keys["arrowleft"] = false);
+    const rightBtn = document.createElement("button");
+    rightBtn.textContent = "Right";
+    rightBtn.style.padding = "20px";
+    rightBtn.style.border = "2px solid #0ff";
+    rightBtn.style.background = "#000";
+    rightBtn.style.color = "#0ff";
+    rightBtn.style.borderRadius = "8px";
+    rightBtn.style.fontSize = "20px";
+    rightBtn.style.opacity = "0.7";
+    rightBtn.addEventListener("touchstart", () => keys["arrowright"] = true);
+    rightBtn.addEventListener("touchend", () => keys["arrowright"] = false);
+    const jumpBtn = document.createElement("button");
+    jumpBtn.textContent = "Jump";
+    jumpBtn.style.padding = "20px";
+    jumpBtn.style.border = "2px solid #0ff";
+    jumpBtn.style.background = "#000";
+    jumpBtn.style.color = "#0ff";
+    jumpBtn.style.borderRadius = "8px";
+    jumpBtn.style.fontSize = "20px";
+    jumpBtn.style.opacity = "0.7";
+    jumpBtn.addEventListener("touchstart", () => keys[" "] = true);
+    jumpBtn.addEventListener("touchend", () => keys[" "] = false);
+    controls.appendChild(leftBtn);
+    controls.appendChild(rightBtn);
+    controls.appendChild(jumpBtn);
+    document.body.appendChild(controls);
   }
 });
