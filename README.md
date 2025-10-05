@@ -1,4 +1,4 @@
-🌊 Beacon Run
+🌊 Beacon Run https://maysonkiller.github.io/beacon-run/index.html 
 
 ## Overview
 **Beacon Run** is an engaging blockchain-based endless runner game built on the **Pharos Testnet** (an EVM-compatible blockchain).  
