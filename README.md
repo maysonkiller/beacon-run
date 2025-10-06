@@ -115,5 +115,5 @@ python -m http.server
 
 ---
 
-✨ Enjoy **Beacon Run** — collect, dodge, and earn tokens!  
-For questions or feedback, open an **issue** on GitHub.  
+✨ Enjoy **Beacon Run** collect, dodge, and earn tokens!  
+For questions or feedback, open an **issue** on GitHub.   
